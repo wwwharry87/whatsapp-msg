@@ -126,6 +126,7 @@
     <script>
         let municipiosData = [];
         let currentData = [];
+        let whatsappCheckInterval;
 
         // Função para carregar os municípios do backend
         async function fetchMunicipios() {
@@ -311,7 +312,17 @@
                 } else {
                     // Abre uma nova aba com o WhatsApp Web para autenticação
                     window.open('https://web.whatsapp.com', '_blank');
-                    alert('Por favor, escaneie o QR Code no WhatsApp Web e depois retorne para enviar a mensagem.');
+                    alert('Por favor, escaneie o QR Code no WhatsApp Web.');
+
+                    // Inicia a verificação periódica para checar a autenticação
+                    whatsappCheckInterval = setInterval(async function() {
+                        const authResponse = await fetch('/api/check-whatsapp');
+                        const authResult = await authResponse.json();
+                        if (authResult.authenticated) {
+                            clearInterval(whatsappCheckInterval); // Para a verificação periódica
+                            generateAndSendPDF(); // Envia o PDF após a autenticação
+                        }
+                    }, 5000); // Verifica a cada 5 segundos
                 }
             } catch (error) {
                 console.error('Erro ao verificar a autenticação do WhatsApp:', error);
