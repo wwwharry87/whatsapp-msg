@@ -45,6 +45,10 @@
             border-radius: 10px;
             text-align: center;
         }
+
+        img {
+            margin-top: 10px;
+        }
     </style>
 </head>
 
@@ -58,7 +62,7 @@
     <div id="qrModal">
         <div id="qrModalContent">
             <h2>QR Code para Autenticação:</h2>
-            <img id="qrCodeImage" alt="QR Code do WhatsApp"/> <!-- Exibe a imagem do QR code -->
+            <img id="qrImage" alt="Código QR do WhatsApp" /> <!-- Aqui será exibido o QR Code -->
         </div>
     </div>
 
@@ -71,9 +75,9 @@
                 if (result.authenticated) {
                     alert('WhatsApp autenticado! Mensagem será enviada.');
                 } else if (result.qrImage) {
-                    // Exibe o modal e mostra a imagem do QR code
+                    // Exibe o modal e mostra o QR code como imagem
                     document.getElementById('qrModal').style.display = 'flex';
-                    document.getElementById('qrCodeImage').src = result.qrImage; // Exibe a imagem base64
+                    document.getElementById('qrImage').src = result.qrImage; // Exibe a imagem do QR Code
                 } else {
                     alert('QR code não disponível. Tente novamente.');
                 }
