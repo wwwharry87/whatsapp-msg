@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envio de Relatório para WhatsApp</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.72/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.72/vfs_fonts.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .dropdown {
+            display: inline-block;
+            margin-right: 20px;
+        }
+
+        button {
+            background-color: #25d366;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #1ebe56;
+        }
+
+        .table-container {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Envio de Relatório de Faltas via WhatsApp</h1>
+
+    <!-- Dropdown de Municípios -->
+    <div class="dropdown">
+        <label for="municipio-dropdown">Município:</label>
+        <select id="municipio-dropdown" onchange="fetchMunicipioData()">
+            <option value="">Selecione o Município</option>
+        </select>
+    </div>
+
+    <!-- Dropdown de Escolas -->
+    <div class="dropdown">
+        <label for="escola-dropdown">Escola:</label>
+        <select id="escola-dropdown" onchange="filterTable()">
+            <option value="">Selecione a Escola</option>
+        </select>
+    </div>
+
+    <!-- Dropdown de Coordenadores -->
+    <div class="dropdown">
+        <label for="coordenador-dropdown">Coordenador:</label>
+        <select id="coordenador-dropdown" onchange="filterTable()">
+            <option value="">Selecione o Coordenador</option>
+        </select>
+    </div>
+
+    <!-- Botão para Enviar WhatsApp -->
+    <button onclick="generateAndSendPDF()">Enviar para WhatsApp</button>
+
+    <!-- Tabela de Resultados -->
+    <div class="table-container">
+        <table id="result-table">
+            <thead>
+                <tr>
+                    <th>TURMA</th>
+                    <th>PROFESSOR</th>
+                    <th>DISCIPLINA</th>
+                    <th>DATA</th>
+                    <th>FALTA</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let municipiosData = [];
+        let currentData = [];
+
+        // Função para carregar os municípios do backend
+        async function fetchMunicipios() {
+            const response = await fetch('/api/municipios');
+            const municipios = await response.json();
+
+            municipiosData = municipios; // Guarda os dados dos municípios para usar posteriormente
+            const municipioDropdown = document.getElementById('municipio-dropdown');
+
+            municipios.forEach(municipio => {
+                const option = document.createElement('option');
+                option.value = municipio.municipio;
+                option.textContent = municipio.municipio;
+                municipioDropdown.appendChild(option);
+            });
+        }
+
+        // Função para buscar os dados do município selecionado
+        function fetchMunicipioData() {
+            const selectedMunicipio = document.getElementById('municipio-dropdown').value;
+            if (!selectedMunicipio) {
+                alert('Selecione um município');
+                return;
+            }
+
+            const municipioData = municipiosData.find(m => m.municipio === selectedMunicipio);
+            if (municipioData) {
+                const escolas = [...new Set(municipioData.data.map(d => d.escola))];
+                const coordenadores = [...new Set(municipioData.data.map(d => d.coordenador))];
+
+                populateDropdowns(escolas, coordenadores);
+                populateTable(municipioData.data); // Preenche a tabela com os dados
+            }
+        }
+
+        function populateDropdowns(escolas, coordenadores) {
+            const escolaDropdown = document.getElementById('escola-dropdown');
+            const coordenadorDropdown = document.getElementById('coordenador-dropdown');
+
+            escolaDropdown.innerHTML = '<option value="">Selecione a Escola</option>';
+            coordenadorDropdown.innerHTML = '<option value="">Selecione o Coordenador</option>';
+
+            escolas.forEach(escola => {
+                if (escola.trim()) {
+                    const option = document.createElement('option');
+                    option.value = escola;
+                    option.textContent = escola;
+                    escolaDropdown.appendChild(option);
+                }
+            });
+
+            coordenadores.forEach(coordenador => {
+                if (coordenador.trim()) {
+                    const option = document.createElement('option');
+                    option.value = coordenador;
+                    option.textContent = coordenador;
+                    coordenadorDropdown.appendChild(option);
+                }
+            });
+        }
+
+        function populateTable(data) {
+            currentData = data;
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = ''; // Limpa a tabela
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.nmturma}</td>
+                    <td>${row.professor}</td>
+                    <td>${row.disciplina}</td>
+                    <td>${row.data}</td>
+                    <td>${row.falta}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Função para filtrar a tabela com base nos dropdowns de escola e coordenador
+        function filterTable() {
+            const selectedEscola = document.getElementById('escola-dropdown').value;
+            const selectedCoordenador = document.getElementById('coordenador-dropdown').value;
+
+            const filteredData = currentData.filter(item => {
+                return (!selectedEscola || item.escola === selectedEscola) &&
+                       (!selectedCoordenador || item.coordenador === selectedCoordenador);
+            });
+
+            populateTable(filteredData);
+        }
+
+        // Função para gerar o PDF e enviar via WhatsApp Web
+        function generateAndSendPDF() {
+            const coordenadorDropdown = document.getElementById('coordenador-dropdown');
+            const selectedCoordenador = coordenadorDropdown.value;
+
+            // Filtra o coordenador selecionado e pega os dados
+            const coordenadorData = currentData.filter(d => d.coordenador === selectedCoordenador);
+
+            if (coordenadorData.length > 0) {
+                const telefone = coordenadorData[0].telefone;
+                const telefoneFormatado = telefone.replace(/^(\d{2})(\d{2})(9?\d{8})$/, '+$1$2$3'); // Formata o telefone corretamente
+                const mensagem = `Olá ${selectedCoordenador}, aqui está o relatório de faltas.`;
+
+                // Gerar o PDF com pdfMake
+                const docDefinition = {
+                    content: [
+                        { text: `Relatório de Faltas - Coordenador: ${selectedCoordenador}`, style: 'header' },
+                        {
+                            table: {
+                                headerRows: 1,
+                                widths: ['*', '*', '*', '*', '*'],
+                                body: [
+                                    ['TURMA', 'PROFESSOR', 'DISCIPLINA', 'DATA', 'FALTA'],
+                                    ...coordenadorData.map(row => [
+                                        row.nmturma, row.professor, row.disciplina, row.data, row.falta
+                                    ])
+                                ]
+                            }
+                        }
+                    ],
+                    styles: {
+                        header: {
+                            fontSize: 18,
+                            bold: true,
+                            marginBottom: 20
+                        }
+                    }
+                };
+
+                // Criar PDF e enviar via WhatsApp Web
+                pdfMake.createPdf(docDefinition).getBase64(function (base64String) {
+                    const url = `https://web.whatsapp.com/send?phone=${telefoneFormatado}&text=${encodeURIComponent(mensagem)}`;
+                    window.open(url, '_blank');
+                });
+            } else {
+                alert('Selecione um coordenador válido.');
+            }
+        }
+
+        window.onload = fetchMunicipios;
+    </script>
+</body>
+
+</html>
