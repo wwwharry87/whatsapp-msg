@@ -4,7 +4,7 @@ const fileUpload = require('express-fileupload');
 const { Client, MessageMedia } = require('whatsapp-web.js');
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios'); // Para baixar o arquivo CSV
+const axios = require('axios');
 
 const app = express();
 app.use(bodyParser.json());
@@ -121,16 +121,24 @@ app.get('/api/municipio-dados', async (req, res) => {
 // Rota para enviar mensagem com PDF via WhatsApp
 app.post('/api/send-whatsapp', async (req, res) => {
     const { phone, message } = req.body;
-    const pdfFile = req.files.pdf;
 
-    if (!phone || !message || !pdfFile) {
+    // Verifica se os dados necessários estão presentes
+    if (!phone || !message || !req.files || !req.files.pdf) {
         return res.status(400).json({ error: 'Dados insuficientes. Forneça o telefone, mensagem e o PDF.' });
     }
 
+    const pdfFile = req.files.pdf;
+
     try {
+        // Formata o número do telefone
         const chatId = `${formatPhoneNumber(phone)}@c.us`;
 
-        // Envia a mensagem
+        // Verifica se o cliente do WhatsApp está pronto
+        if (!client.info) {
+            return res.status(500).json({ error: 'Cliente WhatsApp ainda não está pronto.' });
+        }
+
+        // Envia a mensagem de texto
         await client.sendMessage(chatId, message);
 
         // Converte o arquivo PDF para o formato correto e envia
@@ -140,7 +148,7 @@ app.post('/api/send-whatsapp', async (req, res) => {
         res.status(200).json({ status: 'success', message: 'Mensagem enviada com sucesso' });
     } catch (error) {
         console.error('Erro ao enviar mensagem via WhatsApp:', error);
-        res.status(500).json({ error: 'Erro ao enviar mensagem via WhatsApp.' });
+        res.status(500).json({ error: 'Erro ao enviar mensagem via WhatsApp.', details: error.message });
     }
 });
 
