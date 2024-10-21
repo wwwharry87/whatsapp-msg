@@ -2,6 +2,7 @@ const express = require('express');
 const { Client } = require('whatsapp-web.js');
 const fs = require('fs');
 const qrcode = require('qrcode'); // Gerar QR code para o frontend
+const path = require('path'); // Adiciona o path para servir arquivos estáticos
 const app = express();
 
 let qrCodeString = null; // Armazena o QR code como string
@@ -38,6 +39,14 @@ app.get('/api/check-whatsapp', (req, res) => {
     } else {
         res.json({ authenticated: false, qrCode: null });
     }
+});
+
+// Serve arquivos estáticos do frontend
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rota que captura todas as outras e retorna o index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Inicia o servidor
