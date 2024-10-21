@@ -117,13 +117,12 @@
         // Função para carregar os municípios do backend
         async function fetchMunicipios() {
             try {
-                // Fazendo a requisição para o backend no endpoint correto
                 const response = await fetch('/api/municipios');
                 if (!response.ok) {
                     throw new Error('Erro ao carregar os municípios.');
                 }
                 const municipios = await response.json();
-                municipiosData = municipios; // Guarda os dados dos municípios para usar posteriormente
+                municipiosData = municipios;
                 const municipioDropdown = document.getElementById('municipio-dropdown');
 
                 municipios.forEach(municipio => {
@@ -138,7 +137,6 @@
             }
         }
 
-        // Função para buscar os dados do município selecionado
         function fetchMunicipioData() {
             const selectedMunicipio = document.getElementById('municipio-dropdown').value;
             if (!selectedMunicipio) {
@@ -200,7 +198,6 @@
             });
         }
 
-        // Função para filtrar a tabela com base nos dropdowns de escola e coordenador
         function filterTable() {
             const selectedEscola = document.getElementById('escola-dropdown').value;
             const selectedCoordenador = document.getElementById('coordenador-dropdown').value;
@@ -213,17 +210,16 @@
             populateTable(filteredData);
         }
 
-        // Função para gerar o PDF e enviar via WhatsApp Web
+        // Função para gerar o PDF e enviar via WhatsApp automaticamente
         function generateAndSendPDF() {
             const coordenadorDropdown = document.getElementById('coordenador-dropdown');
             const selectedCoordenador = coordenadorDropdown.value;
 
-            // Filtra o coordenador selecionado e pega os dados
             const coordenadorData = currentData.filter(d => d.coordenador === selectedCoordenador);
 
             if (coordenadorData.length > 0) {
                 const telefone = coordenadorData[0].telefone;
-                const telefoneFormatado = telefone.replace(/^(\d{2})(\d{2})(9?\d{8})$/, '+$1$2$3'); // Formata o telefone corretamente
+                const telefoneFormatado = telefone.replace(/^(\d{2})(\d{2})(9?\d{8})$/, '+$1$2$3');
                 const mensagem = `Olá ${selectedCoordenador}, aqui está o relatório de faltas.`;
 
                 // Gerar o PDF com pdfMake
@@ -252,10 +248,29 @@
                     }
                 };
 
-                // Criar PDF e enviar via WhatsApp Web
-                pdfMake.createPdf(docDefinition).getBase64(function (base64String) {
-                    const url = `https://web.whatsapp.com/send?phone=${telefoneFormatado}&text=${encodeURIComponent(mensagem)}`;
-                    window.open(url, '_blank');
+                pdfMake.createPdf(docDefinition).getBase64(async function (base64String) {
+                    try {
+                        // Criando um formData para enviar o PDF
+                        const formData = new FormData();
+                        formData.append('phone', telefoneFormatado);
+                        formData.append('message', mensagem);
+                        formData.append('pdf', new Blob([base64String], { type: 'application/pdf' }), 'relatorio.pdf');
+
+                        // Enviar para o backend via fetch API
+                        const response = await fetch('/api/send-whatsapp', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            alert('Mensagem enviada com sucesso!');
+                        } else {
+                            alert('Erro ao enviar a mensagem.');
+                        }
+                    } catch (error) {
+                        console.error('Erro ao enviar mensagem:', error);
+                        alert('Erro ao enviar mensagem.');
+                    }
                 });
             } else {
                 alert('Selecione um coordenador válido.');
