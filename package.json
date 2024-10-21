@@ -12,8 +12,9 @@
     "express": "^4.17.1",
     "express-fileupload": "^1.2.1",
     "fs": "0.0.1-security",
-    "whatsapp-web.js": "^1.17.1",
-    "puppeteer": "^19.11.1"
+    "puppeteer": "^19.11.1",
+    "qrcode": "^1.5.0",
+    "whatsapp-web.js": "^1.17.1"
   },
   "engines": {
     "node": ">=14.0.0"
