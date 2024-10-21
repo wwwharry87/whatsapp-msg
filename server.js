@@ -11,6 +11,9 @@ app.use(bodyParser.json());
 app.use(fileUpload());
 app.use(express.static(path.join(__dirname, 'public')));
 
+let qrCode = null; // Variável para armazenar o QR code
+let isWhatsAppAuthenticated = false; // Variável para controlar a autenticação
+
 // Inicializa o cliente do WhatsApp Web com Puppeteer
 const client = new Client({
     puppeteer: {
@@ -25,20 +28,19 @@ const client = new Client({
     }
 });
 
-let isWhatsAppAuthenticated = false; // Variável para controlar a autenticação
-
 client.initialize();
 
 // Evento de QR Code para autenticar o WhatsApp
 client.on('qr', (qr) => {
     console.log('QR Code gerado, escaneie com o WhatsApp:', qr);
-    // Aqui você pode enviar o QR code para o frontend
+    qrCode = qr; // Armazena o QR code
 });
 
 // Evento quando o cliente está pronto
 client.on('ready', () => {
     console.log('Cliente WhatsApp está pronto');
     isWhatsAppAuthenticated = true; // Marca como autenticado
+    qrCode = null; // Limpa o QR code
 });
 
 // Função para formatar o número de telefone
@@ -53,12 +55,12 @@ function formatPhoneNumber(phone) {
     return `55${phone}`;
 }
 
-// Função para verificar se o WhatsApp está autenticado
+// Função para verificar se o WhatsApp está autenticado e obter o QR code
 app.get('/api/check-whatsapp', (req, res) => {
     if (isWhatsAppAuthenticated) {
         res.json({ authenticated: true });
     } else {
-        res.json({ authenticated: false });
+        res.json({ authenticated: false, qrCode }); // Envia o QR code para o frontend
     }
 });
 

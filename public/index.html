@@ -60,6 +60,33 @@
         tr:nth-child(odd) {
             background-color: #ffffff;
         }
+
+        /* Modal */
+        #qrModal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #qrModalContent {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #qrModal img {
+            width: 200px;
+            height: 200px;
+        }
     </style>
 </head>
 
@@ -91,7 +118,7 @@
     </div>
 
     <!-- Botão para Enviar WhatsApp -->
-    <button onclick="generateAndSendPDF()">Enviar para WhatsApp</button>
+    <button onclick="checkWhatsAppAndSend()">Enviar para WhatsApp</button>
 
     <!-- Tabela de Resultados -->
     <div class="table-container">
@@ -108,6 +135,14 @@
             <tbody id="table-body">
             </tbody>
         </table>
+    </div>
+
+    <!-- Modal para QR Code -->
+    <div id="qrModal">
+        <div id="qrModalContent">
+            <h2>Escaneie o QR Code</h2>
+            <img id="qrCodeImg" alt="QR Code do WhatsApp" />
+        </div>
     </div>
 
     <script>
@@ -219,6 +254,26 @@
             populateTable(filteredData);
         }
 
+        // Função para verificar se o WhatsApp está autenticado
+        async function checkWhatsAppAndSend() {
+            try {
+                const response = await fetch('/api/check-whatsapp');
+                const data = await response.json();
+
+                if (!data.authenticated) {
+                    // Se o WhatsApp não estiver autenticado, exibe o QR code no modal
+                    document.getElementById('qrModal').style.display = 'flex';
+                    document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data.qrCode)}`;
+                } else {
+                    // Se o WhatsApp estiver autenticado, envia o relatório
+                    generateAndSendPDF();
+                }
+            } catch (error) {
+                console.error('Erro ao verificar autenticação do WhatsApp:', error);
+                alert('Erro ao verificar autenticação do WhatsApp.');
+            }
+        }
+
         // Função para gerar o PDF e enviar via WhatsApp
         function generateAndSendPDF() {
             const coordenadorDropdown = document.getElementById('coordenador-dropdown');
@@ -286,6 +341,14 @@
                 alert('Nenhum coordenador selecionado ou dados disponíveis.');
             }
         }
+
+        // Fecha o modal quando o QR code é escaneado
+        window.addEventListener('message', (event) => {
+            if (event.data === 'whatsapp-authenticated') {
+                document.getElementById('qrModal').style.display = 'none';
+                generateAndSendPDF(); // Envia a mensagem após a autenticação
+            }
+        });
 
         window.onload = fetchMunicipios;
     </script>
