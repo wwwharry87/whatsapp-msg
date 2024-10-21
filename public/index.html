@@ -122,20 +122,9 @@
                     throw new Error('Erro ao carregar os municípios.');
                 }
                 const municipios = await response.json();
-                
-                console.log('Municípios recebidos:', municipios); // Verifica os dados recebidos
-
                 municipiosData = municipios;
                 const municipioDropdown = document.getElementById('municipio-dropdown');
 
-                // Verifica se os municípios têm dados
-                if (municipios.length === 0) {
-                    console.error('Nenhum município encontrado.');
-                    alert('Nenhum município encontrado.');
-                    return;
-                }
-
-                // Preenche o dropdown com os municípios
                 municipios.forEach(municipio => {
                     const option = document.createElement('option');
                     option.value = municipio.municipio;
@@ -161,7 +150,7 @@
                 const coordenadores = [...new Set(municipioData.data.map(d => d.coordenador))];
 
                 populateDropdowns(escolas, coordenadores);
-                populateTable(municipioData.data); // Preenche a tabela com os dados
+                populateTable(municipioData.data);
             }
         }
 
@@ -194,7 +183,7 @@
         function populateTable(data) {
             currentData = data;
             const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = ''; // Limpa a tabela
+            tableBody.innerHTML = '';
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
@@ -209,22 +198,12 @@
             });
         }
 
-        function filterTable() {
-            const selectedEscola = document.getElementById('escola-dropdown').value;
-            const selectedCoordenador = document.getElementById('coordenador-dropdown').value;
-
-            const filteredData = currentData.filter(item => {
-                return (!selectedEscola || item.escola === selectedEscola) &&
-                       (!selectedCoordenador || item.coordenador === selectedCoordenador);
-            });
-
-            populateTable(filteredData);
-        }
-
         // Função para gerar o PDF e enviar via WhatsApp automaticamente
-        function generateAndSendPDF() {
+        async function generateAndSendPDF() {
             const coordenadorDropdown = document.getElementById('coordenador-dropdown');
             const selectedCoordenador = coordenadorDropdown.value;
+            const municipioDropdown = document.getElementById('municipio-dropdown');
+            const selectedMunicipio = municipioDropdown.value;
 
             const coordenadorData = currentData.filter(d => d.coordenador === selectedCoordenador);
 
@@ -263,6 +242,7 @@
                     try {
                         // Criando um formData para enviar o PDF
                         const formData = new FormData();
+                        formData.append('municipio', selectedMunicipio); // Adicionando o município
                         formData.append('phone', telefoneFormatado);
                         formData.append('message', mensagem);
                         formData.append('pdf', new Blob([base64String], { type: 'application/pdf' }), 'relatorio.pdf');
