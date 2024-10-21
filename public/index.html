@@ -332,8 +332,12 @@
                     generateAndSendPDF();
                 } else {
                     // Exibe o QR code no modal
-                    document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}`;
-                    document.getElementById('qrModal').style.display = 'flex';
+                    if (result.qrCode) {
+                        document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}`;
+                        document.getElementById('qrModal').style.display = 'flex';
+                    } else {
+                        alert('Erro ao gerar o QR Code. Tente novamente.');
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao verificar a autenticação do WhatsApp:', error);

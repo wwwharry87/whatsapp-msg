@@ -40,7 +40,7 @@ client.on('qr', (qr) => {
 client.on('ready', () => {
     console.log('Cliente WhatsApp está pronto');
     isWhatsAppAuthenticated = true; // Marca como autenticado
-    qrCode = null; // Limpa o QR code
+    qrCode = null; // Limpa o QR code após a autenticação
 });
 
 // Função para formatar o número de telefone
@@ -172,7 +172,7 @@ app.get('/api/municipio-dados', async (req, res) => {
     }
 });
 
-// Inicia o servidor
+// Inicia o servidor//
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);
