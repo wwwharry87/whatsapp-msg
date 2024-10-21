@@ -29,31 +29,6 @@
             margin-top: 20px;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-
-        th {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        tr:nth-child(odd) {
-            background-color: #ffffff;
-        }
-
         #qrModal {
             display: none;
             position: fixed;
@@ -75,11 +50,12 @@
             text-align: center;
         }
 
-        #qrModal img {
-            width: 200px;
-            height: 200px;
+        #qrcode {
+            margin-top: 20px;
         }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
@@ -87,10 +63,11 @@
 
     <button onclick="checkWhatsAppAndSend()">Enviar para WhatsApp</button>
 
+    <!-- Modal para exibir o QR code -->
     <div id="qrModal">
         <div id="qrModalContent">
             <h2>Escaneie o QR Code</h2>
-            <img id="qrCodeImg" alt="QR Code do WhatsApp" />
+            <div id="qrcode"></div>
         </div>
     </div>
 
@@ -102,13 +79,19 @@
 
                 if (result.authenticated) {
                     alert('WhatsApp autenticado! Mensagem será enviada.');
-                    // Adicionar a lógica de envio da mensagem
+                    // Adicione a lógica de envio da mensagem
                 } else if (result.qrCode) {
-                    // Exibe o QR code no modal
-                    document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}&size=200x200`;
+                    // Exibe o modal e gera o QR code no frontend usando a string
                     document.getElementById('qrModal').style.display = 'flex';
+                    const qrContainer = document.getElementById('qrcode');
+                    qrContainer.innerHTML = ''; // Limpa o conteúdo anterior, se houver
+                    new QRCode(qrContainer, {
+                        text: result.qrCode,
+                        width: 200,
+                        height: 200
+                    });
                 } else {
-                    alert('QR code não recebido. Tente novamente.');
+                    alert('QR code não disponível. Tente novamente.');
                 }
             } catch (error) {
                 console.error('Erro ao verificar a autenticação do WhatsApp:', error);
