@@ -45,10 +45,6 @@
             border-radius: 10px;
             text-align: center;
         }
-
-        #qrcode {
-            margin-top: 20px;
-        }
     </style>
 </head>
 
@@ -61,31 +57,23 @@
     <!-- Modal para QR Code -->
     <div id="qrModal">
         <div id="qrModalContent">
-            <h2>QR Code para autenticação do WhatsApp:</h2>
-            <div id="qrcode"></div> <!-- Elemento onde o QR code será gerado -->
-            <br>
-            <button onclick="closeModal()">Fechar</button>
+            <h2>QR Code para Autenticação:</h2>
+            <img id="qrCodeImage" alt="QR Code do WhatsApp"/> <!-- Exibe a imagem do QR code -->
         </div>
     </div>
-
-    <!-- Inclusão da biblioteca de QR Code -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
     <script>
         async function checkWhatsAppAndSend() {
             try {
                 const response = await fetch('/api/check-whatsapp');
                 const result = await response.json();
-                
-                console.log("QR Code recebido:", result.qrCode); // Log para verificar a string recebida
 
                 if (result.authenticated) {
                     alert('WhatsApp autenticado! Mensagem será enviada.');
-                } else if (result.qrCode) {
-                    // Exibe o modal e gera o QR code a partir da string
+                } else if (result.qrImage) {
+                    // Exibe o modal e mostra a imagem do QR code
                     document.getElementById('qrModal').style.display = 'flex';
-                    document.getElementById('qrcode').innerHTML = ''; // Limpa o QR Code anterior, se existir
-                    generateQRCode(result.qrCode); // Gera o QR Code
+                    document.getElementById('qrCodeImage').src = result.qrImage; // Exibe a imagem base64
                 } else {
                     alert('QR code não disponível. Tente novamente.');
                 }
@@ -94,26 +82,6 @@
                 alert('Erro ao verificar a autenticação do WhatsApp.');
             }
         }
-
-        // Função para fechar o modal
-        function closeModal() {
-            document.getElementById('qrModal').style.display = 'none';
-        }
-
-        // Função para gerar o QR Code
-function generateQRCode(qrString) {
-    const qrCodeElement = document.getElementById('qrcode');
-    
-    // Utilizando apenas a primeira parte da string separada por vírgula
-    const cleanQrString = qrString.split(',')[0];
-    
-    QRCode.toCanvas(qrCodeElement, cleanQrString, function (error) {
-        if (error) {
-            console.error('Erro ao gerar o QR Code:', error);
-            alert('Erro ao gerar o QR Code. Verifique o console para mais detalhes.');
-        }
-    });
-}
     </script>
 </body>
 </html>

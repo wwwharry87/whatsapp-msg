@@ -1,14 +1,13 @@
 const express = require('express');
 const { Client } = require('whatsapp-web.js');
 const fs = require('fs');
-const qrcode = require('qrcode'); // Gerar QR code para o frontend
-const path = require('path'); // Adiciona o path para servir arquivos estáticos
+const qrcode = require('qrcode'); // Para gerar QR code
 const app = express();
 
-let qrCodeString = null; // Armazena o QR code como string
+let qrCodeString = null;
 let isWhatsAppAuthenticated = false;
 
-// Inicializa o cliente do WhatsApp Web com Puppeteer
+// Inicializa o cliente do WhatsApp Web
 const client = new Client({
     puppeteer: {
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
@@ -17,7 +16,7 @@ const client = new Client({
 
 client.initialize();
 
-// Evento de QR Code para autenticar o WhatsApp
+// Evento de QR Code para autenticação
 client.on('qr', (qr) => {
     qrCodeString = qr; // Armazena o QR code como string
     console.log('QR Code recebido:', qr); // Exibe no log
@@ -30,23 +29,17 @@ client.on('ready', () => {
     qrCodeString = null; // Limpa o QR code após a autenticação
 });
 
-// Rota para verificar se o WhatsApp está autenticado e retornar o QR code
-app.get('/api/check-whatsapp', (req, res) => {
+// Rota para verificar e gerar a imagem do QR Code
+app.get('/api/check-whatsapp', async (req, res) => {
     if (isWhatsAppAuthenticated) {
         res.json({ authenticated: true });
     } else if (qrCodeString) {
-        res.json({ authenticated: false, qrCode: qrCodeString }); // Retorna a string do QR code
+        // Gera a imagem do QR Code
+        const qrImage = await qrcode.toDataURL(qrCodeString); // Gera o QR code como uma URL de imagem base64
+        res.json({ authenticated: false, qrImage: qrImage }); // Envia a imagem como resposta
     } else {
-        res.json({ authenticated: false, qrCode: null });
+        res.json({ authenticated: false, qrImage: null });
     }
-});
-
-// Serve arquivos estáticos do frontend
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Rota que captura todas as outras e retorna o index.html
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Inicia o servidor
