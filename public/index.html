@@ -101,15 +101,19 @@
         }
 
         // Função para gerar o QR Code
-        function generateQRCode(qrString) {
-            const qrCodeElement = document.getElementById('qrcode');
-            QRCode.toCanvas(qrCodeElement, qrString, function (error) {
-                if (error) {
-                    console.error('Erro ao gerar o QR Code:', error);
-                    alert('Erro ao gerar o QR Code. Verifique o console para mais detalhes.');
-                }
-            });
+function generateQRCode(qrString) {
+    const qrCodeElement = document.getElementById('qrcode');
+    
+    // Utilizando apenas a primeira parte da string separada por vírgula
+    const cleanQrString = qrString.split(',')[0];
+    
+    QRCode.toCanvas(qrCodeElement, cleanQrString, function (error) {
+        if (error) {
+            console.error('Erro ao gerar o QR Code:', error);
+            alert('Erro ao gerar o QR Code. Verifique o console para mais detalhes.');
         }
+    });
+}
     </script>
 </body>
 </html>
