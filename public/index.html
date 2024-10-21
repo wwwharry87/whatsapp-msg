@@ -300,7 +300,7 @@
             }
         }
 
-        // Função para verificar se o WhatsApp está autenticado e exibir o QR code, se necessário
+        // Função para verificar se o WhatsApp está autenticado e abrir uma nova aba com o WhatsApp Web, se necessário
         async function checkWhatsAppAndSend() {
             try {
                 const response = await fetch('/api/check-whatsapp');
@@ -309,9 +309,9 @@
                 if (result.authenticated) {
                     generateAndSendPDF();
                 } else {
-                    // Exibe o QR code diretamente na página
-                    const qrCodeSection = document.getElementById('qrCodeSection');
-                    qrCodeSection.innerHTML = `<h2>Escaneie o QR Code</h2><img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}" alt="QR Code do WhatsApp" />`;
+                    // Abre uma nova aba com o WhatsApp Web para autenticação
+                    window.open('https://web.whatsapp.com', '_blank');
+                    alert('Por favor, escaneie o QR Code no WhatsApp Web e depois retorne para enviar a mensagem.');
                 }
             } catch (error) {
                 console.error('Erro ao verificar a autenticação do WhatsApp:', error);
