@@ -254,26 +254,6 @@
             populateTable(filteredData);
         }
 
-        // Função para verificar se o WhatsApp está autenticado
-        async function checkWhatsAppAndSend() {
-            try {
-                const response = await fetch('/api/check-whatsapp');
-                const data = await response.json();
-
-                if (!data.authenticated) {
-                    // Se o WhatsApp não estiver autenticado, exibe o QR code no modal
-                    document.getElementById('qrModal').style.display = 'flex';
-                    document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data.qrCode)}`;
-                } else {
-                    // Se o WhatsApp estiver autenticado, envia o relatório
-                    generateAndSendPDF();
-                }
-            } catch (error) {
-                console.error('Erro ao verificar autenticação do WhatsApp:', error);
-                alert('Erro ao verificar autenticação do WhatsApp.');
-            }
-        }
-
         // Função para gerar o PDF e enviar via WhatsApp
         function generateAndSendPDF() {
             const coordenadorDropdown = document.getElementById('coordenador-dropdown');
@@ -339,6 +319,25 @@
                 });
             } else {
                 alert('Nenhum coordenador selecionado ou dados disponíveis.');
+            }
+        }
+
+        // Função para verificar se o WhatsApp está autenticado e exibir o QR code, se necessário
+        async function checkWhatsAppAndSend() {
+            try {
+                const response = await fetch('/api/check-whatsapp');
+                const result = await response.json();
+
+                if (result.authenticated) {
+                    generateAndSendPDF();
+                } else {
+                    // Exibe o QR code no modal
+                    document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}`;
+                    document.getElementById('qrModal').style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar a autenticação do WhatsApp:', error);
+                alert('Erro ao verificar a autenticação do WhatsApp.');
             }
         }
 
