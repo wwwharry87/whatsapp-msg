@@ -61,29 +61,12 @@
             background-color: #ffffff;
         }
 
-        /* Modal */
-        #qrModal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #qrModalContent {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
+        .qr-code {
+            margin-top: 20px;
             text-align: center;
         }
 
-        #qrModal img {
+        .qr-code img {
             width: 200px;
             height: 200px;
         }
@@ -137,13 +120,8 @@
         </table>
     </div>
 
-    <!-- Modal para QR Code -->
-    <div id="qrModal">
-        <div id="qrModalContent">
-            <h2>Escaneie o QR Code</h2>
-            <img id="qrCodeImg" alt="QR Code do WhatsApp" />
-        </div>
-    </div>
+    <!-- QR Code Section -->
+    <div id="qrCodeSection" class="qr-code"></div>
 
     <script>
         let municipiosData = [];
@@ -331,27 +309,15 @@
                 if (result.authenticated) {
                     generateAndSendPDF();
                 } else {
-                    // Exibe o QR code no modal
-                    if (result.qrCode) {
-                        document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}`;
-                        document.getElementById('qrModal').style.display = 'flex';
-                    } else {
-                        alert('Erro ao gerar o QR Code. Tente novamente.');
-                    }
+                    // Exibe o QR code diretamente na página
+                    const qrCodeSection = document.getElementById('qrCodeSection');
+                    qrCodeSection.innerHTML = `<h2>Escaneie o QR Code</h2><img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}" alt="QR Code do WhatsApp" />`;
                 }
             } catch (error) {
                 console.error('Erro ao verificar a autenticação do WhatsApp:', error);
                 alert('Erro ao verificar a autenticação do WhatsApp.');
             }
         }
-
-        // Fecha o modal quando o QR code é escaneado
-        window.addEventListener('message', (event) => {
-            if (event.data === 'whatsapp-authenticated') {
-                document.getElementById('qrModal').style.display = 'none';
-                generateAndSendPDF(); // Envia a mensagem após a autenticação
-            }
-        });
 
         window.onload = fetchMunicipios;
     </script>
