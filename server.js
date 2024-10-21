@@ -1,29 +1,32 @@
 const express = require('express');
-const { Client } = require('whatsapp-web.js');
-const fs = require('fs');
-const path = require('path'); // Para servir arquivos estáticos
-const qrcode = require('qrcode');
+const { Client, LocalAuth } = require('whatsapp-web.js'); // Atualizado para usar LocalAuth (para autenticação persistente)
+const qrcode = require('qrcode'); // Para gerar QR code para o frontend
 const app = express();
+app.use(express.json());
 
-let qrCodeString = null;
+let qrCodeString = null; // Armazena o QR code como string
 let isWhatsAppAuthenticated = false;
-
-// Middleware para servir arquivos estáticos (frontend)
-app.use(express.static(path.join(__dirname, 'public'))); // Certifique-se que o frontend está na pasta 'public'
 
 // Inicializa o cliente do WhatsApp Web com Puppeteer
 const client = new Client({
     puppeteer: {
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-    }
+    },
+    authStrategy: new LocalAuth() // Autenticação persistente
 });
 
 client.initialize();
 
-// Evento de QR Code para autenticação
+// Evento de QR Code para autenticar o WhatsApp
 client.on('qr', (qr) => {
-    qrCodeString = qr; // Armazena o QR code como string
-    console.log('QR Code recebido:', qr);
+    qrcode.toDataURL(qr, (err, qrImage) => {
+        if (err) {
+            console.error('Erro ao gerar o QR Code:', err);
+            return;
+        }
+        qrCodeString = qrImage; // Armazena a imagem do QR code
+    });
+    console.log('QR Code recebido:', qr); // Exibe no log
 });
 
 // Evento quando o cliente está pronto
@@ -33,21 +36,33 @@ client.on('ready', () => {
     qrCodeString = null; // Limpa o QR code após a autenticação
 });
 
-// Rota para verificar e gerar a imagem do QR Code
-app.get('/api/check-whatsapp', async (req, res) => {
+// Rota para verificar se o WhatsApp está autenticado e retornar o QR code
+app.get('/api/check-whatsapp', (req, res) => {
     if (isWhatsAppAuthenticated) {
         res.json({ authenticated: true });
     } else if (qrCodeString) {
-        const qrImage = await qrcode.toDataURL(qrCodeString); // Gera o QR code como uma URL de imagem base64
-        res.json({ authenticated: false, qrImage: qrImage });
+        res.json({ authenticated: false, qrImage: qrCodeString }); // Retorna a imagem do QR code
     } else {
         res.json({ authenticated: false, qrImage: null });
     }
 });
 
-// Serve o arquivo HTML principal
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// **Rota para enviar mensagem**
+app.post('/api/send-message', async (req, res) => {
+    const { number, message } = req.body;
+
+    if (!isWhatsAppAuthenticated) {
+        return res.status(400).json({ error: 'WhatsApp não está autenticado.' });
+    }
+
+    try {
+        const sanitizedNumber = `${number}@c.us`; // Formato exigido pelo WhatsApp
+        await client.sendMessage(sanitizedNumber, message);
+        res.json({ success: true, message: 'Mensagem enviada com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao enviar mensagem:', error);
+        res.status(500).json({ error: 'Falha ao enviar a mensagem.' });
+    }
 });
 
 // Inicia o servidor

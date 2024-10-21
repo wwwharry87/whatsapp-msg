@@ -49,14 +49,28 @@
         img {
             margin-top: 10px;
         }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
 <body>
     <h1>Envio de Relatório de Faltas via WhatsApp</h1>
 
-    <!-- Botão para Enviar WhatsApp -->
-    <button onclick="checkWhatsAppAndSend()">Verificar WhatsApp</button>
+    <!-- Formulário para enviar mensagem -->
+    <div class="input-group">
+        <label for="number">Número de Telefone (com código do país):</label><br>
+        <input type="text" id="number" placeholder="Ex: 5511999999999">
+    </div>
+    
+    <div class="input-group">
+        <label for="message">Mensagem:</label><br>
+        <textarea id="message" rows="4" cols="50" placeholder="Digite a mensagem"></textarea>
+    </div>
+    
+    <button onclick="sendMessage()">Enviar Mensagem</button>
 
     <!-- Modal para QR Code -->
     <div id="qrModal">
@@ -74,7 +88,7 @@
                 const result = await response.json();
 
                 if (result.authenticated) {
-                    alert('WhatsApp autenticado! Mensagem será enviada.');
+                    alert('WhatsApp autenticado! Pronto para enviar mensagem.');
                 } else if (result.qrImage) {
                     // Exibe o modal e mostra o QR code como imagem
                     document.getElementById('qrModal').style.display = 'flex';
@@ -85,6 +99,37 @@
             } catch (error) {
                 console.error('Erro ao verificar a autenticação do WhatsApp:', error);
                 alert('Erro ao verificar a autenticação do WhatsApp.');
+            }
+        }
+
+        async function sendMessage() {
+            const number = document.getElementById('number').value;
+            const message = document.getElementById('message').value;
+
+            if (!number || !message) {
+                alert('Por favor, insira o número de telefone e a mensagem.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ number, message }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Mensagem enviada com sucesso!');
+                } else {
+                    alert('Erro ao enviar a mensagem: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao enviar a mensagem:', error);
+                alert('Erro ao enviar a mensagem.');
             }
         }
 
