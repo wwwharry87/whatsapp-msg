@@ -63,6 +63,7 @@
         <div id="qrModalContent">
             <h2>QR Code para Autenticação:</h2>
             <img id="qrImage" alt="Código QR do WhatsApp" /> <!-- Aqui será exibido o QR Code -->
+            <button onclick="closeModal()">Fechar</button> <!-- Botão para fechar o modal -->
         </div>
     </div>
 
@@ -85,6 +86,10 @@
                 console.error('Erro ao verificar a autenticação do WhatsApp:', error);
                 alert('Erro ao verificar a autenticação do WhatsApp.');
             }
+        }
+
+        function closeModal() {
+            document.getElementById('qrModal').style.display = 'none'; // Fechar o modal
         }
     </script>
 </body>
