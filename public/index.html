@@ -73,11 +73,10 @@
                 const result = await response.json();
 
                 if (result.authenticated) {
-                    // Se estiver autenticado, prossiga com o envio da mensagem
                     alert('WhatsApp já autenticado. Pronto para enviar mensagens.');
                 } else if (result.qrCode) {
                     // Exibe o QR code no modal
-                    document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}`;
+                    document.getElementById('qrCodeImg').src = result.qrCode;
                     document.getElementById('qrModal').style.display = 'flex';
                 }
             } catch (error) {
