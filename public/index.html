@@ -61,12 +61,29 @@
             background-color: #ffffff;
         }
 
-        .qr-code {
-            margin-top: 20px;
+        /* Modal */
+        #qrModal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #qrModalContent {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
             text-align: center;
         }
 
-        .qr-code img {
+        #qrModal img {
             width: 200px;
             height: 200px;
         }
@@ -120,13 +137,17 @@
         </table>
     </div>
 
-    <!-- QR Code Section -->
-    <div id="qrCodeSection" class="qr-code"></div>
+    <!-- Modal para QR Code -->
+    <div id="qrModal">
+        <div id="qrModalContent">
+            <h2>Escaneie o QR Code</h2>
+            <img id="qrCodeImg" alt="QR Code do WhatsApp" />
+        </div>
+    </div>
 
     <script>
         let municipiosData = [];
         let currentData = [];
-        let whatsappCheckInterval;
 
         // Função para carregar os municípios do backend
         async function fetchMunicipios() {
@@ -301,7 +322,7 @@
             }
         }
 
-        // Função para verificar se o WhatsApp está autenticado e abrir uma nova aba com o WhatsApp Web, se necessário
+        // Função para verificar se o WhatsApp está autenticado e exibir o QR code, se necessário
         async function checkWhatsAppAndSend() {
             try {
                 const response = await fetch('/api/check-whatsapp');
@@ -309,20 +330,10 @@
 
                 if (result.authenticated) {
                     generateAndSendPDF();
-                } else {
-                    // Abre uma nova aba com o WhatsApp Web para autenticação
-                    window.open('https://web.whatsapp.com', '_blank');
-                    alert('Por favor, escaneie o QR Code no WhatsApp Web.');
-
-                    // Inicia a verificação periódica para checar a autenticação
-                    whatsappCheckInterval = setInterval(async function() {
-                        const authResponse = await fetch('/api/check-whatsapp');
-                        const authResult = await authResponse.json();
-                        if (authResult.authenticated) {
-                            clearInterval(whatsappCheckInterval); // Para a verificação periódica
-                            generateAndSendPDF(); // Envia o PDF após a autenticação
-                        }
-                    }, 5000); // Verifica a cada 5 segundos
+                } else if (result.qrCode) {
+                    // Exibe o QR code no modal
+                    document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}`;
+                    document.getElementById('qrModal').style.display = 'flex';
                 }
             } catch (error) {
                 console.error('Erro ao verificar a autenticação do WhatsApp:', error);
