@@ -25,16 +25,20 @@ const client = new Client({
     }
 });
 
+let isWhatsAppAuthenticated = false; // Variável para controlar a autenticação
+
 client.initialize();
 
 // Evento de QR Code para autenticar o WhatsApp
 client.on('qr', (qr) => {
     console.log('QR Code gerado, escaneie com o WhatsApp:', qr);
+    // Aqui você pode enviar o QR code para o frontend
 });
 
 // Evento quando o cliente está pronto
 client.on('ready', () => {
     console.log('Cliente WhatsApp está pronto');
+    isWhatsAppAuthenticated = true; // Marca como autenticado
 });
 
 // Função para formatar o número de telefone
@@ -48,6 +52,54 @@ function formatPhoneNumber(phone) {
     }
     return `55${phone}`;
 }
+
+// Função para verificar se o WhatsApp está autenticado
+app.get('/api/check-whatsapp', (req, res) => {
+    if (isWhatsAppAuthenticated) {
+        res.json({ authenticated: true });
+    } else {
+        res.json({ authenticated: false });
+    }
+});
+
+// Rota para enviar mensagem com PDF via WhatsApp
+app.post('/api/send-whatsapp', async (req, res) => {
+    const { phone, message } = req.body;
+
+    // Verifica se o WhatsApp está autenticado
+    if (!isWhatsAppAuthenticated) {
+        return res.status(500).json({ error: 'O WhatsApp não está autenticado. Escaneie o QR Code.' });
+    }
+
+    // Verifica se os dados necessários estão presentes
+    if (!phone || !message || !req.files || !req.files.pdf) {
+        return res.status(400).json({ error: 'Dados insuficientes. Forneça o telefone, mensagem e o PDF.' });
+    }
+
+    const pdfFile = req.files.pdf;
+
+    try {
+        // Formata o número do telefone
+        const chatId = `${formatPhoneNumber(phone)}@c.us`;
+
+        // Verifica se o cliente do WhatsApp está pronto
+        if (!client.info) {
+            return res.status(500).json({ error: 'Cliente WhatsApp ainda não está pronto.' });
+        }
+
+        // Envia a mensagem de texto
+        await client.sendMessage(chatId, message);
+
+        // Converte o arquivo PDF para o formato correto e envia
+        const media = new MessageMedia(pdfFile.mimetype, pdfFile.data.toString('base64'), pdfFile.name);
+        await client.sendMessage(chatId, media);
+
+        res.status(200).json({ status: 'success', message: 'Mensagem enviada com sucesso' });
+    } catch (error) {
+        console.error('Erro ao enviar mensagem via WhatsApp:', error);
+        res.status(500).json({ error: 'Erro ao enviar mensagem via WhatsApp.', details: error.message });
+    }
+});
 
 // Função para buscar os municípios no arquivo municipios.txt
 app.get('/api/municipios', async (req, res) => {
@@ -115,40 +167,6 @@ app.get('/api/municipio-dados', async (req, res) => {
     } catch (error) {
         console.error('Erro ao buscar e processar CSV:', error);
         res.status(500).json({ error: 'Erro ao buscar e processar o CSV.' });
-    }
-});
-
-// Rota para enviar mensagem com PDF via WhatsApp
-app.post('/api/send-whatsapp', async (req, res) => {
-    const { phone, message } = req.body;
-
-    // Verifica se os dados necessários estão presentes
-    if (!phone || !message || !req.files || !req.files.pdf) {
-        return res.status(400).json({ error: 'Dados insuficientes. Forneça o telefone, mensagem e o PDF.' });
-    }
-
-    const pdfFile = req.files.pdf;
-
-    try {
-        // Formata o número do telefone
-        const chatId = `${formatPhoneNumber(phone)}@c.us`;
-
-        // Verifica se o cliente do WhatsApp está pronto
-        if (!client.info) {
-            return res.status(500).json({ error: 'Cliente WhatsApp ainda não está pronto.' });
-        }
-
-        // Envia a mensagem de texto
-        await client.sendMessage(chatId, message);
-
-        // Converte o arquivo PDF para o formato correto e envia
-        const media = new MessageMedia(pdfFile.mimetype, pdfFile.data.toString('base64'), pdfFile.name);
-        await client.sendMessage(chatId, media);
-
-        res.status(200).json({ status: 'success', message: 'Mensagem enviada com sucesso' });
-    } catch (error) {
-        console.error('Erro ao enviar mensagem via WhatsApp:', error);
-        res.status(500).json({ error: 'Erro ao enviar mensagem via WhatsApp.', details: error.message });
     }
 });
 
