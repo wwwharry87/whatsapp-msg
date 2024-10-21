@@ -1,21 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envio de Relatório para WhatsApp</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.72/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.72/vfs_fonts.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
-        }
-
-        .dropdown {
-            display: inline-block;
-            margin-right: 20px;
         }
 
         button {
@@ -30,35 +22,6 @@
 
         button:hover {
             background-color: #1ebe56;
-        }
-
-        .table-container {
-            margin-top: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-
-        th {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        tr:nth-child(odd) {
-            background-color: #ffffff;
         }
 
         /* Modal */
@@ -84,58 +47,15 @@
         }
 
         #qrModal img {
-            width: 200px;
-            height: 200px;
+            width: 250px;
+            height: 250px;
         }
     </style>
 </head>
-
 <body>
-    <h1>Envio de Relatório de Faltas via WhatsApp</h1>
+    <h1>Envio de Relatório via WhatsApp</h1>
 
-    <!-- Dropdown de Municípios -->
-    <div class="dropdown">
-        <label for="municipio-dropdown">Município:</label>
-        <select id="municipio-dropdown" onchange="fetchMunicipioData()">
-            <option value="">Selecione o Município</option>
-        </select>
-    </div>
-
-    <!-- Dropdown de Escolas -->
-    <div class="dropdown">
-        <label for="escola-dropdown">Escola:</label>
-        <select id="escola-dropdown" onchange="filterTable()">
-            <option value="">Selecione a Escola</option>
-        </select>
-    </div>
-
-    <!-- Dropdown de Coordenadores -->
-    <div class="dropdown">
-        <label for="coordenador-dropdown">Coordenador:</label>
-        <select id="coordenador-dropdown" onchange="filterTable()">
-            <option value="">Selecione o Coordenador</option>
-        </select>
-    </div>
-
-    <!-- Botão para Enviar WhatsApp -->
-    <button onclick="checkWhatsAppAndSend()">Enviar para WhatsApp</button>
-
-    <!-- Tabela de Resultados -->
-    <div class="table-container">
-        <table id="result-table">
-            <thead>
-                <tr>
-                    <th>TURMA</th>
-                    <th>PROFESSOR</th>
-                    <th>DISCIPLINA</th>
-                    <th>DATA</th>
-                    <th>FALTA</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-            </tbody>
-        </table>
-    </div>
+    <button onclick="checkWhatsAppAndSend()">Enviar Mensagem para WhatsApp</button>
 
     <!-- Modal para QR Code -->
     <div id="qrModal">
@@ -146,182 +66,6 @@
     </div>
 
     <script>
-        let municipiosData = [];
-        let currentData = [];
-
-        // Função para carregar os municípios do backend
-        async function fetchMunicipios() {
-            try {
-                const response = await fetch('/api/municipios');
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar os municípios.');
-                }
-                const municipios = await response.json();
-                municipiosData = municipios;
-                const municipioDropdown = document.getElementById('municipio-dropdown');
-
-                municipios.forEach(municipio => {
-                    const option = document.createElement('option');
-                    option.value = municipio.url; // Guarda a URL do município
-                    option.textContent = municipio.municipio;
-                    municipioDropdown.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Erro ao carregar os municípios:', error);
-                alert('Erro ao carregar os municípios.');
-            }
-        }
-
-        // Função para buscar os dados do município selecionado
-        async function fetchMunicipioData() {
-            const selectedUrl = document.getElementById('municipio-dropdown').value;
-            if (!selectedUrl) {
-                alert('Selecione um município');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/municipio-dados?url=${encodeURIComponent(selectedUrl)}`);
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar os dados do município.');
-                }
-
-                const municipioData = await response.json();
-                const escolas = [...new Set(municipioData.map(d => d.escola))];
-                const coordenadores = [...new Set(municipioData.map(d => d.coordenador))];
-
-                populateDropdowns(escolas, coordenadores);
-                populateTable(municipioData); // Preenche a tabela com os dados
-            } catch (error) {
-                console.error('Erro ao carregar os dados do município:', error);
-                alert('Erro ao carregar os dados do município.');
-            }
-        }
-
-        function populateDropdowns(escolas, coordenadores) {
-            const escolaDropdown = document.getElementById('escola-dropdown');
-            const coordenadorDropdown = document.getElementById('coordenador-dropdown');
-
-            escolaDropdown.innerHTML = '<option value="">Selecione a Escola</option>';
-            coordenadorDropdown.innerHTML = '<option value="">Selecione o Coordenador</option>';
-
-            escolas.forEach(escola => {
-                if (escola.trim()) {
-                    const option = document.createElement('option');
-                    option.value = escola;
-                    option.textContent = escola;
-                    escolaDropdown.appendChild(option);
-                }
-            });
-
-            coordenadores.forEach(coordenador => {
-                if (coordenador.trim()) {
-                    const option = document.createElement('option');
-                    option.value = coordenador;
-                    option.textContent = coordenador;
-                    coordenadorDropdown.appendChild(option);
-                }
-            });
-        }
-
-        function populateTable(data) {
-            currentData = data;
-            const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = ''; // Limpa a tabela
-
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.nmturma}</td>
-                    <td>${row.professor}</td>
-                    <td>${row.disciplina}</td>
-                    <td>${row.data}</td>
-                    <td>${row.falta}</td>
-                `;
-                tableBody.appendChild(tr);
-            });
-        }
-
-        function filterTable() {
-            const selectedEscola = document.getElementById('escola-dropdown').value;
-            const selectedCoordenador = document.getElementById('coordenador-dropdown').value;
-
-            const filteredData = currentData.filter(item => {
-                return (!selectedEscola || item.escola === selectedEscola) &&
-                       (!selectedCoordenador || item.coordenador === selectedCoordenador);
-            });
-
-            populateTable(filteredData);
-        }
-
-        // Função para gerar o PDF e enviar via WhatsApp
-        function generateAndSendPDF() {
-            const coordenadorDropdown = document.getElementById('coordenador-dropdown');
-            const selectedCoordenador = coordenadorDropdown.value;
-
-            const coordenadorData = currentData.filter(d => d.coordenador === selectedCoordenador);
-
-            if (coordenadorData.length > 0) {
-                const telefone = coordenadorData[0].telefone;
-                const telefoneFormatado = telefone.replace(/^(\d{2})(\d{2})(9?\d{8})$/, '+$1$2$3');
-                const mensagem = `Olá ${selectedCoordenador}, aqui está o relatório de faltas.`;
-
-                // Gerar o PDF com pdfMake
-                const docDefinition = {
-                    content: [
-                        { text: `Relatório de Faltas - Coordenador: ${selectedCoordenador}`, style: 'header' },
-                        {
-                            table: {
-                                headerRows: 1,
-                                widths: ['*', '*', '*', '*', '*'],
-                                body: [
-                                    ['TURMA', 'PROFESSOR', 'DISCIPLINA', 'DATA', 'FALTA'],
-                                    ...coordenadorData.map(row => [
-                                        row.nmturma, row.professor, row.disciplina, row.data, row.falta
-                                    ])
-                                ]
-                            }
-                        }
-                    ],
-                    styles: {
-                        header: {
-                            fontSize: 18,
-                            bold: true,
-                            marginBottom: 20
-                        }
-                    }
-                };
-
-                pdfMake.createPdf(docDefinition).getBase64(async function (base64String) {
-                    try {
-                        // Criando um formData para enviar o PDF
-                        const formData = new FormData();
-                        formData.append('phone', telefoneFormatado);
-                        formData.append('message', mensagem);
-                        formData.append('pdf', new Blob([base64String], { type: 'application/pdf' }), 'relatorio.pdf');
-
-                        const response = await fetch('/api/send-whatsapp', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        const result = await response.json();
-
-                        if (result.status === 'success') {
-                            alert(`Mensagem enviada para ${telefoneFormatado} com sucesso!`);
-                        } else {
-                            alert(`Erro ao enviar a mensagem: ${result.error}`);
-                        }
-                    } catch (error) {
-                        console.error('Erro ao enviar mensagem via WhatsApp:', error);
-                        alert('Erro ao enviar a mensagem.');
-                    }
-                });
-            } else {
-                alert('Nenhum coordenador selecionado ou dados disponíveis.');
-            }
-        }
-
         // Função para verificar se o WhatsApp está autenticado e exibir o QR code, se necessário
         async function checkWhatsAppAndSend() {
             try {
@@ -329,7 +73,8 @@
                 const result = await response.json();
 
                 if (result.authenticated) {
-                    generateAndSendPDF();
+                    // Se estiver autenticado, prossiga com o envio da mensagem
+                    alert('WhatsApp já autenticado. Pronto para enviar mensagens.');
                 } else if (result.qrCode) {
                     // Exibe o QR code no modal
                     document.getElementById('qrCodeImg').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(result.qrCode)}`;
@@ -341,8 +86,17 @@
             }
         }
 
-        window.onload = fetchMunicipios;
+        // Fecha o modal quando o QR code é escaneado e o WhatsApp é autenticado
+        function closeModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        window.addEventListener('message', (event) => {
+            if (event.data === 'whatsapp-authenticated') {
+                closeModal();
+                alert('WhatsApp autenticado com sucesso. Pronto para enviar mensagens.');
+            }
+        });
     </script>
 </body>
-
 </html>
