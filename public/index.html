@@ -76,6 +76,8 @@
             try {
                 const response = await fetch('/api/check-whatsapp');
                 const result = await response.json();
+                
+                console.log("QR Code recebido:", result.qrCode); // Log para verificar a string recebida
 
                 if (result.authenticated) {
                     alert('WhatsApp autenticado! Mensagem será enviada.');
@@ -104,6 +106,7 @@
             QRCode.toCanvas(qrCodeElement, qrString, function (error) {
                 if (error) {
                     console.error('Erro ao gerar o QR Code:', error);
+                    alert('Erro ao gerar o QR Code. Verifique o console para mais detalhes.');
                 }
             });
         }
