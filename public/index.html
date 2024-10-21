@@ -219,6 +219,74 @@
             populateTable(filteredData);
         }
 
+        // Função para gerar o PDF e enviar via WhatsApp
+        function generateAndSendPDF() {
+            const coordenadorDropdown = document.getElementById('coordenador-dropdown');
+            const selectedCoordenador = coordenadorDropdown.value;
+
+            const coordenadorData = currentData.filter(d => d.coordenador === selectedCoordenador);
+
+            if (coordenadorData.length > 0) {
+                const telefone = coordenadorData[0].telefone;
+                const telefoneFormatado = telefone.replace(/^(\d{2})(\d{2})(9?\d{8})$/, '+$1$2$3');
+                const mensagem = `Olá ${selectedCoordenador}, aqui está o relatório de faltas.`;
+
+                // Gerar o PDF com pdfMake
+                const docDefinition = {
+                    content: [
+                        { text: `Relatório de Faltas - Coordenador: ${selectedCoordenador}`, style: 'header' },
+                        {
+                            table: {
+                                headerRows: 1,
+                                widths: ['*', '*', '*', '*', '*'],
+                                body: [
+                                    ['TURMA', 'PROFESSOR', 'DISCIPLINA', 'DATA', 'FALTA'],
+                                    ...coordenadorData.map(row => [
+                                        row.nmturma, row.professor, row.disciplina, row.data, row.falta
+                                    ])
+                                ]
+                            }
+                        }
+                    ],
+                    styles: {
+                        header: {
+                            fontSize: 18,
+                            bold: true,
+                            marginBottom: 20
+                        }
+                    }
+                };
+
+                pdfMake.createPdf(docDefinition).getBase64(async function (base64String) {
+                    try {
+                        // Criando um formData para enviar o PDF
+                        const formData = new FormData();
+                        formData.append('phone', telefoneFormatado);
+                        formData.append('message', mensagem);
+                        formData.append('pdf', new Blob([base64String], { type: 'application/pdf' }), 'relatorio.pdf');
+
+                        const response = await fetch('/api/send-whatsapp', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (result.status === 'success') {
+                            alert(`Mensagem enviada para ${telefoneFormatado} com sucesso!`);
+                        } else {
+                            alert(`Erro ao enviar a mensagem: ${result.error}`);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao enviar mensagem via WhatsApp:', error);
+                        alert('Erro ao enviar a mensagem.');
+                    }
+                });
+            } else {
+                alert('Nenhum coordenador selecionado ou dados disponíveis.');
+            }
+        }
+
         window.onload = fetchMunicipios;
     </script>
 </body>
