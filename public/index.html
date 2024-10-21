@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Envio de Relatório para WhatsApp</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.72/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.72/vfs_fonts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -25,10 +28,40 @@
             font-size: 16px;
         }
 
+        button:hover {
+            background-color: #1ebe56;
+        }
+
         .table-container {
             margin-top: 20px;
         }
 
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+
+        /* Modal */
         #qrModal {
             display: none;
             position: fixed;
@@ -50,20 +83,28 @@
             text-align: center;
         }
 
-        #qrcode {
-            margin-top: 20px;
+        #qrModal img {
+            width: 200px;
+            height: 200px;
         }
     </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
     <h1>Envio de Relatório de Faltas via WhatsApp</h1>
 
+    <!-- Dropdown de Municípios -->
+    <div class="dropdown">
+        <label for="municipio-dropdown">Município:</label>
+        <select id="municipio-dropdown" onchange="fetchMunicipioData()">
+            <option value="">Selecione o Município</option>
+        </select>
+    </div>
+
+    <!-- Botão para Enviar WhatsApp -->
     <button onclick="checkWhatsAppAndSend()">Enviar para WhatsApp</button>
 
-    <!-- Modal para exibir o QR code -->
+    <!-- Modal para QR Code -->
     <div id="qrModal">
         <div id="qrModalContent">
             <h2>Escaneie o QR Code</h2>
@@ -79,7 +120,6 @@
 
                 if (result.authenticated) {
                     alert('WhatsApp autenticado! Mensagem será enviada.');
-                    // Adicione a lógica de envio da mensagem
                 } else if (result.qrCode) {
                     // Exibe o modal e gera o QR code no frontend usando a string
                     document.getElementById('qrModal').style.display = 'flex';
