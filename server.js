@@ -1,13 +1,18 @@
 const express = require('express');
 const { Client } = require('whatsapp-web.js');
 const qrcode = require('qrcode'); // Biblioteca para gerar QR codes
-
+const fs = require('fs');
 const app = express();
+
 let qrCodeString = null; // Variável para armazenar a string do QR code
 let isWhatsAppAuthenticated = false; // Verificar se está autenticado
 
-// Inicializa o cliente do WhatsApp Web
-const client = new Client();
+// Inicializa o cliente do WhatsApp Web com Puppeteer
+const client = new Client({
+    puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Desabilitar o sandbox
+    }
+});
 client.initialize();
 
 // Evento de QR Code para autenticar o WhatsApp
