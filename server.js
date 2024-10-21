@@ -37,7 +37,7 @@ client.on('ready', () => {
     console.log('Cliente WhatsApp está pronto');
 });
 
-// Função para formatar o número de telefone (código do país e remove o "9" extra)
+// Função para formatar o número de telefone
 function formatPhoneNumber(phone) {
     phone = phone.replace(/[^0-9]/g, '');
     if (phone.startsWith('0')) {
@@ -49,39 +49,35 @@ function formatPhoneNumber(phone) {
     return `55${phone}`;
 }
 
-// Função para baixar o CSV a partir da URL e salvar na pasta public
-async function downloadCSV(url, destination) {
-    const writer = fs.createWriteStream(destination);
-    
-    const response = await axios({
-        url,
-        method: 'GET',
-        responseType: 'stream'
-    });
-    
-    response.data.pipe(writer);
-    
-    return new Promise((resolve, reject) => {
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-    });
-}
+// Função para buscar os municípios no arquivo municipios.txt
+app.get('/api/municipios', async (req, res) => {
+    try {
+        // Verifica se o arquivo municipios.txt existe
+        const filePath = path.join(__dirname, 'municipios.txt');
+        if (!fs.existsSync(filePath)) {
+            return res.status(500).json({ error: 'Arquivo municipios.txt não encontrado.' });
+        }
 
-// Função para buscar a URL do CSV baseado no município
-async function getCSVUrlByMunicipio(municipio) {
-    const municipiosFile = fs.readFileSync('municipios.txt', 'utf-8');
-    const municipios = municipiosFile.split('\n').map(line => {
-        const [municipioName, url] = line.split(';');
-        return { municipio: municipioName.trim(), url: url.trim() };
-    });
+        const municipiosFile = fs.readFileSync(filePath, 'utf-8');
+        const municipios = municipiosFile.split('\n').map(line => {
+            const [municipio, url] = line.split(';');
+            if (municipio && url) {
+                return { municipio: municipio.trim(), url: url.trim() };
+            }
+            return null;
+        }).filter(Boolean); // Remove linhas vazias ou inválidas
 
-    const foundMunicipio = municipios.find(m => m.municipio === municipio);
-    if (foundMunicipio) {
-        return foundMunicipio.url;
-    } else {
-        throw new Error('Município não encontrado.');
+        if (municipios.length === 0) {
+            return res.status(500).json({ error: 'Nenhum município encontrado no arquivo.' });
+        }
+
+        // Envia os municípios para o frontend
+        res.json(municipios);
+    } catch (error) {
+        console.error('Erro ao carregar municípios:', error);
+        res.status(500).json({ error: 'Erro ao carregar municípios.' });
     }
-}
+});
 
 // Função para enviar PDF via WhatsApp
 app.post('/api/send-whatsapp', async (req, res) => {
@@ -97,12 +93,6 @@ app.post('/api/send-whatsapp', async (req, res) => {
         if (!client.info) {
             return res.status(500).send({ error: 'Cliente do WhatsApp não está pronto.' });
         }
-
-        // Busca a URL do CSV e baixa o arquivo
-        const csvUrl = await getCSVUrlByMunicipio(municipio);
-        const destination = path.join(__dirname, 'public', `${municipio}-numbers.csv`);
-
-        await downloadCSV(csvUrl, destination); // Baixa o CSV correspondente
 
         const formattedPhone = formatPhoneNumber(phone);
         
