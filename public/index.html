@@ -116,18 +116,26 @@
 
         // Função para carregar os municípios do backend
         async function fetchMunicipios() {
-            const response = await fetch('/api/municipios');
-            const municipios = await response.json();
+            try {
+                // Fazendo a requisição para o backend no endpoint correto
+                const response = await fetch('/api/municipios');
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar os municípios.');
+                }
+                const municipios = await response.json();
+                municipiosData = municipios; // Guarda os dados dos municípios para usar posteriormente
+                const municipioDropdown = document.getElementById('municipio-dropdown');
 
-            municipiosData = municipios; // Guarda os dados dos municípios para usar posteriormente
-            const municipioDropdown = document.getElementById('municipio-dropdown');
-
-            municipios.forEach(municipio => {
-                const option = document.createElement('option');
-                option.value = municipio.municipio;
-                option.textContent = municipio.municipio;
-                municipioDropdown.appendChild(option);
-            });
+                municipios.forEach(municipio => {
+                    const option = document.createElement('option');
+                    option.value = municipio.municipio;
+                    option.textContent = municipio.municipio;
+                    municipioDropdown.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar os municípios:', error);
+                alert('Erro ao carregar os municípios.');
+            }
         }
 
         // Função para buscar os dados do município selecionado

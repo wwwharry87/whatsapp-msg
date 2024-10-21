@@ -1,0 +1,3 @@
+Tucuruí-PA;https://sgbr-use1-s3-reposervice.s3.amazonaws.com/arquivos/upload/1130/geral/numbers.csv
+Marabá-PA;https://sgbr-use1-s3-reposervice.s3.amazonaws.com/arquivos/upload/1100/geral/teste_whatsapp.csv
+Altamira-PA;https://example.com/numbers.csv

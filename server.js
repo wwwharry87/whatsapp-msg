@@ -4,10 +4,12 @@ const fileUpload = require('express-fileupload');
 const { Client, MessageMedia } = require('whatsapp-web.js');
 const fs = require('fs');
 const axios = require('axios');
+const path = require('path'); // Para servir arquivos estáticos
 
 const app = express();
 app.use(bodyParser.json());
 app.use(fileUpload());
+app.use(express.static(path.join(__dirname, 'public'))); // Servir arquivos estáticos como o frontend
 
 // Inicializa o cliente do WhatsApp Web com Puppeteer
 const client = new Client({
@@ -19,8 +21,8 @@ const client = new Client({
             '--disable-gpu',
             '--window-size=1920x1080'
         ],
-        timeout: 60000,  // Aumente o tempo limite
-    }    
+        timeout: 60000,  // Aumenta o tempo limite para o Puppeteer
+    }
 });
 
 client.initialize();
