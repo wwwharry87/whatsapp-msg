@@ -10,7 +10,7 @@ let isWhatsAppAuthenticated = false;
 // Inicializa o cliente do WhatsApp Web com Puppeteer
 const client = new Client({
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'], // Desabilitar o sandbox no Heroku
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
     }
 });
 
