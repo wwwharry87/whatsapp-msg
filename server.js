@@ -118,6 +118,32 @@ app.get('/api/municipio-dados', async (req, res) => {
     }
 });
 
+// Rota para enviar mensagem com PDF via WhatsApp
+app.post('/api/send-whatsapp', async (req, res) => {
+    const { phone, message } = req.body;
+    const pdfFile = req.files.pdf;
+
+    if (!phone || !message || !pdfFile) {
+        return res.status(400).json({ error: 'Dados insuficientes. Forneça o telefone, mensagem e o PDF.' });
+    }
+
+    try {
+        const chatId = `${formatPhoneNumber(phone)}@c.us`;
+
+        // Envia a mensagem
+        await client.sendMessage(chatId, message);
+
+        // Converte o arquivo PDF para o formato correto e envia
+        const media = new MessageMedia(pdfFile.mimetype, pdfFile.data.toString('base64'), pdfFile.name);
+        await client.sendMessage(chatId, media);
+
+        res.status(200).json({ status: 'success', message: 'Mensagem enviada com sucesso' });
+    } catch (error) {
+        console.error('Erro ao enviar mensagem via WhatsApp:', error);
+        res.status(500).json({ error: 'Erro ao enviar mensagem via WhatsApp.' });
+    }
+});
+
 // Inicia o servidor
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
