@@ -4,6 +4,7 @@ const fileUpload = require('express-fileupload');
 const { Client, MessageMedia } = require('whatsapp-web.js');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 const app = express();
 
 app.use(bodyParser.json());
@@ -82,6 +83,66 @@ app.post('/api/send-whatsapp', async (req, res) => {
     } catch (error) {
         console.error('Erro ao enviar mensagem via WhatsApp:', error);
         res.status(500).send({ error: 'Erro ao enviar mensagem via WhatsApp.' });
+    }
+});
+
+// Função para ler o arquivo municipios.txt
+async function processMunicipiosFile() {
+    try {
+        const municipiosFile = fs.readFileSync('municipios.txt', 'utf-8');
+        const municipios = municipiosFile.split('\n').map(line => {
+            const [municipio, url] = line.split(';');
+            return { municipio: municipio.trim(), url: url.trim() };
+        });
+        return municipios;
+    } catch (error) {
+        console.error('Erro ao ler o arquivo municipios.txt:', error);
+        throw new Error('Erro ao ler o arquivo de municípios.');
+    }
+}
+
+// Função para buscar e processar os CSVs dos municípios
+async function fetchAndProcessCSV(url) {
+    try {
+        const response = await axios.get(url);
+        const data = [];
+        response.data.split('\n').forEach(line => {
+            const columns = line.split(',');
+            if (columns.length > 7) {
+                data.push({
+                    nmturma: columns[2].trim(),
+                    professor: columns[3].trim(),
+                    telefone: columns[5].trim(),
+                    disciplina: columns[7].trim(),
+                    data: columns[8].trim(),
+                    falta: columns[9].trim(),
+                    coordenador: columns[4].trim(),
+                    escola: columns[0].trim()
+                });
+            }
+        });
+        return data;
+    } catch (error) {
+        console.error(`Erro ao buscar CSV da URL ${url}:`, error);
+        return [];
+    }
+}
+
+// Endpoint para buscar dados dos municípios e seus CSVs
+app.get('/api/municipios', async (req, res) => {
+    try {
+        const municipios = await processMunicipiosFile();
+        const allData = [];
+
+        for (const municipio of municipios) {
+            const data = await fetchAndProcessCSV(municipio.url);
+            allData.push({ municipio: municipio.municipio, data });
+        }
+
+        res.json(allData); // Envia os dados para o frontend
+    } catch (error) {
+        console.error('Erro ao processar o arquivo municipios.txt ou CSV:', error);
+        res.status(500).send({ error: 'Erro ao processar dados dos municípios.' });
     }
 });
 

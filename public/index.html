@@ -122,9 +122,20 @@
                     throw new Error('Erro ao carregar os municípios.');
                 }
                 const municipios = await response.json();
+                
+                console.log('Municípios recebidos:', municipios); // Verifica os dados recebidos
+
                 municipiosData = municipios;
                 const municipioDropdown = document.getElementById('municipio-dropdown');
 
+                // Verifica se os municípios têm dados
+                if (municipios.length === 0) {
+                    console.error('Nenhum município encontrado.');
+                    alert('Nenhum município encontrado.');
+                    return;
+                }
+
+                // Preenche o dropdown com os municípios
                 municipios.forEach(municipio => {
                     const option = document.createElement('option');
                     option.value = municipio.municipio;
