@@ -127,7 +127,7 @@
 
                 municipios.forEach(municipio => {
                     const option = document.createElement('option');
-                    option.value = municipio.municipio;
+                    option.value = municipio.url; // Guarda a URL do município
                     option.textContent = municipio.municipio;
                     municipioDropdown.appendChild(option);
                 });
@@ -137,20 +137,29 @@
             }
         }
 
-        function fetchMunicipioData() {
-            const selectedMunicipio = document.getElementById('municipio-dropdown').value;
-            if (!selectedMunicipio) {
+        // Função para buscar os dados do município selecionado
+        async function fetchMunicipioData() {
+            const selectedUrl = document.getElementById('municipio-dropdown').value;
+            if (!selectedUrl) {
                 alert('Selecione um município');
                 return;
             }
 
-            const municipioData = municipiosData.find(m => m.municipio === selectedMunicipio);
-            if (municipioData) {
-                const escolas = [...new Set(municipioData.data.map(d => d.escola))];
-                const coordenadores = [...new Set(municipioData.data.map(d => d.coordenador))];
+            try {
+                const response = await fetch(`/api/municipio-dados?url=${encodeURIComponent(selectedUrl)}`);
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar os dados do município.');
+                }
+
+                const municipioData = await response.json();
+                const escolas = [...new Set(municipioData.map(d => d.escola))];
+                const coordenadores = [...new Set(municipioData.map(d => d.coordenador))];
 
                 populateDropdowns(escolas, coordenadores);
-                populateTable(municipioData.data);
+                populateTable(municipioData); // Preenche a tabela com os dados
+            } catch (error) {
+                console.error('Erro ao carregar os dados do município:', error);
+                alert('Erro ao carregar os dados do município.');
             }
         }
 
@@ -183,7 +192,7 @@
         function populateTable(data) {
             currentData = data;
             const tableBody = document.getElementById('table-body');
-            tableBody.innerHTML = '';
+            tableBody.innerHTML = ''; // Limpa a tabela
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
@@ -198,74 +207,16 @@
             });
         }
 
-        // Função para gerar o PDF e enviar via WhatsApp automaticamente
-        async function generateAndSendPDF() {
-            const coordenadorDropdown = document.getElementById('coordenador-dropdown');
-            const selectedCoordenador = coordenadorDropdown.value;
-            const municipioDropdown = document.getElementById('municipio-dropdown');
-            const selectedMunicipio = municipioDropdown.value;
+        function filterTable() {
+            const selectedEscola = document.getElementById('escola-dropdown').value;
+            const selectedCoordenador = document.getElementById('coordenador-dropdown').value;
 
-            const coordenadorData = currentData.filter(d => d.coordenador === selectedCoordenador);
+            const filteredData = currentData.filter(item => {
+                return (!selectedEscola || item.escola === selectedEscola) &&
+                       (!selectedCoordenador || item.coordenador === selectedCoordenador);
+            });
 
-            if (coordenadorData.length > 0) {
-                const telefone = coordenadorData[0].telefone;
-                const telefoneFormatado = telefone.replace(/^(\d{2})(\d{2})(9?\d{8})$/, '+$1$2$3');
-                const mensagem = `Olá ${selectedCoordenador}, aqui está o relatório de faltas.`;
-
-                // Gerar o PDF com pdfMake
-                const docDefinition = {
-                    content: [
-                        { text: `Relatório de Faltas - Coordenador: ${selectedCoordenador}`, style: 'header' },
-                        {
-                            table: {
-                                headerRows: 1,
-                                widths: ['*', '*', '*', '*', '*'],
-                                body: [
-                                    ['TURMA', 'PROFESSOR', 'DISCIPLINA', 'DATA', 'FALTA'],
-                                    ...coordenadorData.map(row => [
-                                        row.nmturma, row.professor, row.disciplina, row.data, row.falta
-                                    ])
-                                ]
-                            }
-                        }
-                    ],
-                    styles: {
-                        header: {
-                            fontSize: 18,
-                            bold: true,
-                            marginBottom: 20
-                        }
-                    }
-                };
-
-                pdfMake.createPdf(docDefinition).getBase64(async function (base64String) {
-                    try {
-                        // Criando um formData para enviar o PDF
-                        const formData = new FormData();
-                        formData.append('municipio', selectedMunicipio); // Adicionando o município
-                        formData.append('phone', telefoneFormatado);
-                        formData.append('message', mensagem);
-                        formData.append('pdf', new Blob([base64String], { type: 'application/pdf' }), 'relatorio.pdf');
-
-                        // Enviar para o backend via fetch API
-                        const response = await fetch('/api/send-whatsapp', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        if (response.ok) {
-                            alert('Mensagem enviada com sucesso!');
-                        } else {
-                            alert('Erro ao enviar a mensagem.');
-                        }
-                    } catch (error) {
-                        console.error('Erro ao enviar mensagem:', error);
-                        alert('Erro ao enviar mensagem.');
-                    }
-                });
-            } else {
-                alert('Selecione um coordenador válido.');
-            }
+            populateTable(filteredData);
         }
 
         window.onload = fetchMunicipios;

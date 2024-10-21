@@ -4,7 +4,7 @@ const fileUpload = require('express-fileupload');
 const { Client, MessageMedia } = require('whatsapp-web.js');
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios');
+const axios = require('axios'); // Para baixar o arquivo CSV
 
 const app = express();
 app.use(bodyParser.json());
@@ -52,7 +52,6 @@ function formatPhoneNumber(phone) {
 // Função para buscar os municípios no arquivo municipios.txt
 app.get('/api/municipios', async (req, res) => {
     try {
-        // Verifica se o arquivo municipios.txt existe
         const filePath = path.join(__dirname, 'municipios.txt');
         if (!fs.existsSync(filePath)) {
             return res.status(500).json({ error: 'Arquivo municipios.txt não encontrado.' });
@@ -65,7 +64,7 @@ app.get('/api/municipios', async (req, res) => {
                 return { municipio: municipio.trim(), url: url.trim() };
             }
             return null;
-        }).filter(Boolean); // Remove linhas vazias ou inválidas
+        }).filter(Boolean);
 
         if (municipios.length === 0) {
             return res.status(500).json({ error: 'Nenhum município encontrado no arquivo.' });
@@ -79,40 +78,43 @@ app.get('/api/municipios', async (req, res) => {
     }
 });
 
-// Função para enviar PDF via WhatsApp
-app.post('/api/send-whatsapp', async (req, res) => {
+// Função para baixar e processar CSV a partir da URL do município
+app.get('/api/municipio-dados', async (req, res) => {
+    const { url } = req.query; // URL do município passado como parâmetro
+    if (!url) {
+        return res.status(400).json({ error: 'URL do município não fornecida.' });
+    }
+
     try {
-        const { municipio, phone, message } = req.body;
-        const pdf = req.files ? req.files.pdf : null;
+        // Baixa o arquivo CSV do município selecionado
+        const response = await axios.get(url);
+        const data = [];
 
-        if (!municipio || !phone) {
-            return res.status(400).send({ error: 'Município ou número de telefone não informado.' });
+        response.data.split('\n').forEach(line => {
+            const columns = line.split(',');
+            if (columns.length >= 7) {
+                data.push({
+                    escola: columns[0].trim(),
+                    coordenador: columns[1].trim(),
+                    nmturma: columns[2].trim(),
+                    professor: columns[3].trim(),
+                    telefone: columns[4].trim(),
+                    disciplina: columns[5].trim(),
+                    data: columns[6].trim(),
+                    falta: columns[7].trim()
+                });
+            }
+        });
+
+        if (data.length === 0) {
+            return res.status(500).json({ error: 'Nenhuma informação disponível no arquivo CSV.' });
         }
 
-        // Verifica se o cliente do WhatsApp está pronto
-        if (!client.info) {
-            return res.status(500).send({ error: 'Cliente do WhatsApp não está pronto.' });
-        }
-
-        const formattedPhone = formatPhoneNumber(phone);
-        
-        // Envia a mensagem de texto
-        await client.sendMessage(`${formattedPhone}@c.us`, message);
-
-        if (pdf) {
-            const pdfPath = `./${pdf.name}`;
-            await pdf.mv(pdfPath);
-
-            const media = MessageMedia.fromFilePath(pdfPath);
-            await client.sendMessage(`${formattedPhone}@c.us`, media);
-
-            fs.unlinkSync(pdfPath);
-        }
-
-        res.send({ status: 'success', message: `Mensagem enviada para ${formattedPhone}` });
+        // Envia os dados processados para o frontend
+        res.json(data);
     } catch (error) {
-        console.error('Erro ao enviar mensagem via WhatsApp:', error);
-        res.status(500).send({ error: 'Erro ao enviar mensagem via WhatsApp.' });
+        console.error('Erro ao buscar e processar CSV:', error);
+        res.status(500).json({ error: 'Erro ao buscar e processar o CSV.' });
     }
 });
 
