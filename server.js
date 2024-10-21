@@ -95,13 +95,13 @@ app.get('/api/municipio-dados', async (req, res) => {
             if (columns.length >= 7) {
                 data.push({
                     escola: columns[0].trim(),
-                    coordenador: columns[1].trim(),
+                    coordenador: columns[4].trim(),
                     nmturma: columns[2].trim(),
                     professor: columns[3].trim(),
-                    telefone: columns[4].trim(),
-                    disciplina: columns[5].trim(),
-                    data: columns[6].trim(),
-                    falta: columns[7].trim()
+                    telefone: columns[5].trim(),
+                    disciplina: columns[7].trim(),
+                    data: columns[8].trim(),
+                    falta: columns[9].trim()
                 });
             }
         });
