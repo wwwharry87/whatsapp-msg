@@ -1,32 +1,405 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Comunicação Frontend e Backend</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 50px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envio de Mensagens para WhatsApp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .pagination {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .action-bar button {
+            margin-left: auto;
+        }
+        .whatsapp-icon {
+            margin-right: 10px;
+        }
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 </head>
 <body>
-  <h1>Comunicação Frontend e Backend</h1>
-  <button id="testButton">Testar Comunicação</button>
-  <p id="response"></p>
+    <div class="container">
+        <h1>Informações de Coordenadores</h1>
 
-  <script>
-    document.getElementById('testButton').addEventListener('click', async () => {
-      try {
-        const response = await fetch('/api/test');
-        const data = await response.json();
-        document.getElementById('response').textContent = data.message;
-      } catch (error) {
-        document.getElementById('response').textContent = 'Erro ao se comunicar com o backend';
-      }
-    });
-  </script>
+        <div class="action-bar">
+            <label for="municipio">Município:</label>
+            <select id="municipio" onchange="carregarDados()" style="width: 200px;">
+                <option value="">Selecione um município</option>
+                <!-- Opções de municípios carregadas dinamicamente -->
+            </select>
+
+            <label for="coordenador">Coordenador:</label>
+            <select id="coordenador" onchange="filtrarPorCoordenador()" style="width: 200px;">
+                <option value="">Todos os Coordenadores</option>
+                <!-- Opções de coordenadores carregadas dinamicamente -->
+            </select>
+
+            <!-- Botão para gerar PDF e enviar via WhatsApp -->
+            <button onclick="verificarWhatsapp()"><i class="fab fa-whatsapp whatsapp-icon"></i>Enviar</button>
+        </div>
+
+        <div id="pdf-content">
+            <table id="dados-table">
+                <thead>
+                    <tr>
+                        <th>Turma</th>
+                        <th>Professor</th>
+                        <th>Disciplina</th>
+                        <th>Data</th>
+                        <th>Falta</th>
+                    </tr>
+                </thead>
+                <tbody id="dados-list">
+                    <!-- Dados carregados dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação -->
+        <div class="pagination">
+            <span id="pagination-info">Pág 1 de X</span>
+            <button id="prev-page" onclick="paginaAnterior()" disabled>&laquo; Anterior</button>
+            <button id="next-page" onclick="proximaPagina()">Próxima &raquo;</button>
+        </div>
+    </div>
+
+    <!-- Modal para exibir o QR code -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal()">&times;</span>
+            <h2>Conecte-se ao WhatsApp</h2>
+            <p>Escaneie o QR code abaixo para conectar o WhatsApp:</p>
+            <div id="qrCodeContainer"></div>
+            <button onclick="fecharModal()">Fechar</button>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let municipioSelecionado = "";
+        let coordenadorSelecionado = "";
+        let dadosCompletos = []; // Armazenar todos os dados carregados
+        let coordenadoresUnicos = []; // Lista de coordenadores únicos
+
+        // Carregar os municípios
+        function carregarMunicipios() {
+            fetch('/api/municipios')
+                .then(response => response.json())
+                .then(municipios => {
+                    const select = document.getElementById('municipio');
+                    municipios.forEach(municipio => {
+                        const option = document.createElement('option');
+                        option.value = municipio;
+                        option.textContent = municipio;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Erro ao carregar municípios:', error));
+        }
+
+        // Carregar os dados filtrados com base no município
+        function carregarDados() {
+            municipioSelecionado = document.getElementById('municipio').value;
+            if (!municipioSelecionado) return;
+
+            fetch(`/api/dados?municipio=${municipioSelecionado}`)
+                .then(response => response.json())
+                .then(data => {
+                    dadosCompletos = data.data; // Armazenar todos os dados
+                    coordenadoresUnicos = [...new Set(dadosCompletos.map(item => item.coordenador))];
+
+                    // Atualizar dropdown de coordenadores
+                    const selectCoordenador = document.getElementById('coordenador');
+                    selectCoordenador.innerHTML = '<option value="">Todos os Coordenadores</option>';
+                    coordenadoresUnicos.forEach(coordenador => {
+                        if (coordenador) { // Verifica se o coordenador não é vazio
+                            const option = document.createElement('option');
+                            option.value = coordenador;
+                            option.textContent = coordenador;
+                            selectCoordenador.appendChild(option);
+                        }
+                    });
+
+                    // Listar todos os dados inicialmente
+                    listarDados(dadosCompletos);
+                })
+                .catch(error => console.error('Erro ao carregar dados:', error));
+        }
+
+        // Filtrar dados por coordenador
+        function filtrarPorCoordenador() {
+            coordenadorSelecionado = document.getElementById('coordenador').value;
+            if (coordenadorSelecionado) {
+                const dadosFiltrados = dadosCompletos.filter(item => item.coordenador === coordenadorSelecionado);
+                listarDados(dadosFiltrados);
+            } else {
+                listarDados(dadosCompletos);
+            }
+        }
+
+        // Listar dados na tabela
+        function listarDados(dados) {
+            const lista = document.getElementById('dados-list');
+            lista.innerHTML = '';
+
+            dados.forEach(item => {
+                const linha = document.createElement('tr');
+                linha.innerHTML = `
+                    <td>${item.turma}</td>
+                    <td>${item.professor}</td>
+                    <td>${item.disciplina}</td>
+                    <td>${item.data}</td>
+                    <td>${item.falta}</td>
+                `;
+                lista.appendChild(linha);
+            });
+        }
+
+        // Verificar se o WhatsApp está conectado antes de enviar
+        function verificarWhatsapp() {
+            console.log('Verificando conexão com WhatsApp...');
+            fetch('/api/check-whatsapp')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.connected) {
+                        console.log('WhatsApp conectado. Gerando PDF e enviando mensagem.');
+                        gerarPdfEnviar();
+                    } else {
+                        if (data.qr) {
+                            console.log('WhatsApp não conectado. Mostrando QR code.');
+                            abrirModalComQr(data.qr);
+                            iniciarAtualizacaoQr();
+                        } else {
+                            alert('Erro ao gerar QR code. Tente novamente.');
+                        }
+                    }
+                })
+                .catch(error => console.error('Erro ao verificar WhatsApp:', error));
+        }
+
+        // Função para abrir o modal com o QR code
+        function abrirModalComQr(qrCodeData) {
+            const qrModal = document.getElementById('qrModal');
+            const qrCodeContainer = document.getElementById('qrCodeContainer');
+            qrCodeContainer.innerHTML = ''; // Limpar conteúdo anterior
+
+            const qrCodeImg = document.createElement('img');
+            qrCodeImg.src = qrCodeData; // Usar o base64 diretamente como src
+            qrCodeImg.alt = 'QR Code para WhatsApp';
+            qrCodeImg.style.width = '300px'; // Ajustar tamanho conforme necessário
+            qrCodeContainer.appendChild(qrCodeImg);
+            
+            qrModal.style.display = "block";
+        }
+
+        // Iniciar a atualização automática do QR code
+        function iniciarAtualizacaoQr() {
+            let qrInterval = setInterval(() => {
+                fetch('/api/check-whatsapp')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.connected) {
+                            fecharModal();
+                            clearInterval(qrInterval); // Parar de atualizar quando conectado
+                        } else if (data.qr) {
+                            abrirModalComQr(data.qr);
+                        }
+                    })
+                    .catch(error => console.error('Erro ao atualizar QR code:', error));
+            }, 10000); // Atualizar a cada 10 segundos
+        }
+
+        // Função para fechar o modal
+        function fecharModal() {
+            document.getElementById('qrModal').style.display = "none";
+        }
+
+        // Função para gerar o PDF e enviar via WhatsApp
+        function gerarPdfEnviar() {
+            if (!municipioSelecionado) {
+                alert('Por favor, selecione um município.');
+                return;
+            }
+
+            const element = document.getElementById('pdf-content');
+            
+            const opt = {
+                margin: 0.5,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            if (coordenadorSelecionado) {
+                console.log(`Gerando PDF para coordenador ${coordenadorSelecionado}`);
+                // Gerar PDF filtrado por coordenador
+                html2pdf().from(element).set(opt).outputPdf().then((pdfContent) => {
+                    const pdfBase64 = btoa(pdfContent); // Converter para base64
+                    enviarMensagemCoordenador(coordenadorSelecionado, pdfBase64);
+                });
+            } else {
+                console.log('Gerando PDF para todos os coordenadores');
+                // Gerar PDF para cada coordenador se nenhum estiver selecionado
+                coordenadoresUnicos.forEach(coordenador => {
+                    const dadosFiltrados = dadosCompletos.filter(item => item.coordenador === coordenador);
+                    listarDados(dadosFiltrados);
+
+                    setTimeout(() => {
+                        html2pdf().from(element).set(opt).outputPdf().then((pdfContent) => {
+                            const pdfBase64 = btoa(pdfContent); // Converter para base64
+                            enviarMensagemCoordenador(coordenador, pdfBase64);
+                        });
+                    }, 500);
+                });
+
+                // Reverter para mostrar todos os dados após geração
+                setTimeout(() => {
+                    listarDados(dadosCompletos);
+                }, 1000);
+            }
+        }
+
+        // Enviar mensagem para coordenador específico com PDF anexado
+        function enviarMensagemCoordenador(coordenador, pdfBase64) {
+            const dadosCoordenador = dadosCompletos.find(item => item.coordenador === coordenador);
+            if (!dadosCoordenador || !dadosCoordenador.telefone) {
+                console.error(`Telefone não encontrado para o coordenador ${coordenador}`);
+                return;
+            }
+
+            const telefone = dadosCoordenador.telefone;
+            console.log(`Enviando mensagem para ${coordenador} com telefone ${telefone}`);
+
+            const body = {
+                municipio: municipioSelecionado,
+                coordenador: coordenador,
+                telefone: telefone,
+                pdfBase64: pdfBase64 // Enviar PDF codificado em base64
+            };
+
+            fetch('/api/enviar-mensagem', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(`Mensagem enviada com sucesso para ${coordenador}`);
+                    alert(`Mensagem enviada para ${coordenador} com sucesso!`);
+                } else {
+                    console.error('Erro ao enviar mensagem:', data.error);
+                }
+            })
+            .catch(error => console.error('Erro ao enviar mensagem:', error));
+        }
+
+        // Função para ir para a página anterior
+        function paginaAnterior() {
+            if (currentPage > 1) {
+                currentPage--;
+                carregarDados();
+            }
+        }
+
+        // Função para ir para a próxima página
+        function proximaPagina() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                carregarDados();
+            }
+        }
+
+        // Carregar os municípios ao abrir a página
+        window.onload = carregarMunicipios;
+    </script>
 </body>
 </html>
