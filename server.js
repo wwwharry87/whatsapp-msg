@@ -1,71 +1,95 @@
 const express = require('express');
-const { Client, LocalAuth } = require('whatsapp-web.js'); // Atualizado para usar LocalAuth (para autenticação persistente)
-const qrcode = require('qrcode'); // Para gerar QR code para o frontend
+const { Client } = require('whatsapp-web.js');
+const fs = require('fs');
+const axios = require('axios');
+const qrcode = require('qrcode');
 const app = express();
-app.use(express.json());
 
-let qrCodeString = null; // Armazena o QR code como string
+// Inicializando o cliente do WhatsApp Web
+let whatsappClient = null;
 let isWhatsAppAuthenticated = false;
+let qrCodeString = null;
 
-// Inicializa o cliente do WhatsApp Web com Puppeteer
-const client = new Client({
-    puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-    },
-    authStrategy: new LocalAuth() // Autenticação persistente
+const client = new Client();
+
+client.on('qr', (qr) => {
+    qrCodeString = qr;
+    console.log('QR Code recebido:', qr);
+});
+
+client.on('ready', () => {
+    console.log('WhatsApp conectado!');
+    isWhatsAppAuthenticated = true;
+    qrCodeString = null;
 });
 
 client.initialize();
 
-// Evento de QR Code para autenticar o WhatsApp
-client.on('qr', (qr) => {
-    qrcode.toDataURL(qr, (err, qrImage) => {
-        if (err) {
-            console.error('Erro ao gerar o QR Code:', err);
-            return;
-        }
-        qrCodeString = qrImage; // Armazena a imagem do QR code
+// Leitura do arquivo `municipios.txt`
+const lerMunicipios = () => {
+    const data = fs.readFileSync('municipios.txt', 'utf-8');
+    const municipios = data.split('\n').map(line => {
+        const [municipio, url] = line.split(';');
+        return { municipio: municipio.trim(), url: url.trim() };
     });
-    console.log('QR Code recebido:', qr); // Exibe no log
-});
+    return municipios;
+};
 
-// Evento quando o cliente está pronto
-client.on('ready', () => {
-    console.log('Cliente WhatsApp está pronto!');
-    isWhatsAppAuthenticated = true;
-    qrCodeString = null; // Limpa o QR code após a autenticação
-});
+// Função para baixar informações de uma URL
+const baixarInfoMunicipios = async (url) => {
+    try {
+        const response = await axios.get(url);
+        return response.data;
+    } catch (error) {
+        console.error(`Erro ao baixar dados de ${url}:`, error);
+        return null;
+    }
+};
 
-// Rota para verificar se o WhatsApp está autenticado e retornar o QR code
+// Envio de mensagem pelo WhatsApp
+const enviarMensagemWhatsApp = async (numero, mensagem) => {
+    try {
+        if (isWhatsAppAuthenticated) {
+            await client.sendMessage(numero, mensagem);
+            console.log(`Mensagem enviada para ${numero}`);
+        } else {
+            console.log("WhatsApp não está autenticado.");
+        }
+    } catch (error) {
+        console.error(`Erro ao enviar mensagem para ${numero}:`, error);
+    }
+};
+
+// Endpoint para verificar status do WhatsApp
 app.get('/api/check-whatsapp', (req, res) => {
     if (isWhatsAppAuthenticated) {
         res.json({ authenticated: true });
     } else if (qrCodeString) {
-        res.json({ authenticated: false, qrImage: qrCodeString }); // Retorna a imagem do QR code
+        res.json({ authenticated: false, qrCode: qrCodeString });
     } else {
-        res.json({ authenticated: false, qrImage: null });
+        res.json({ authenticated: false, qrCode: null });
     }
 });
 
-// **Rota para enviar mensagem**
-app.post('/api/send-message', async (req, res) => {
-    const { number, message } = req.body;
+// Endpoint para enviar as informações dos municípios via WhatsApp
+app.post('/api/enviar', async (req, res) => {
+    const municipios = lerMunicipios();
 
-    if (!isWhatsAppAuthenticated) {
-        return res.status(400).json({ error: 'WhatsApp não está autenticado.' });
+    for (const { municipio, url } of municipios) {
+        const dados = await baixarInfoMunicipios(url);
+        const mensagem = `Informações de ${municipio}: ${dados}`;
+
+        // Exemplo de número de coordenador
+        const numeroCoordenador = '5581999999999';
+
+        // Enviar via WhatsApp
+        await enviarMensagemWhatsApp(numeroCoordenador, mensagem);
     }
 
-    try {
-        const sanitizedNumber = `${number}@c.us`; // Formato exigido pelo WhatsApp
-        await client.sendMessage(sanitizedNumber, message);
-        res.json({ success: true, message: 'Mensagem enviada com sucesso!' });
-    } catch (error) {
-        console.error('Erro ao enviar mensagem:', error);
-        res.status(500).json({ error: 'Falha ao enviar a mensagem.' });
-    }
+    res.json({ success: true, message: 'Mensagens enviadas com sucesso!' });
 });
 
-// Inicia o servidor
+// Servidor
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);

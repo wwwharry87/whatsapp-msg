@@ -3,139 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Envio de Relatório para WhatsApp</title>
+    <title>Envio de Mensagens WhatsApp</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-
-        button {
-            background-color: #25d366;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        button:hover {
-            background-color: #1ebe56;
-        }
-
-        /* Modal */
-        #qrModal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #qrModalContent {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        img {
-            margin-top: 10px;
-        }
-
-        .input-group {
-            margin-bottom: 10px;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px; background-color: #25D366; color: white; border: none; cursor: pointer; }
     </style>
 </head>
-
 <body>
-    <h1>Envio de Relatório de Faltas via WhatsApp</h1>
+    <h1>Envio de Mensagens para Coordenadores</h1>
 
-    <!-- Formulário para enviar mensagem -->
-    <div class="input-group">
-        <label for="number">Número de Telefone (com código do país):</label><br>
-        <input type="text" id="number" placeholder="Ex: 5511999999999">
-    </div>
-    
-    <div class="input-group">
-        <label for="message">Mensagem:</label><br>
-        <textarea id="message" rows="4" cols="50" placeholder="Digite a mensagem"></textarea>
-    </div>
-    
-    <button onclick="sendMessage()">Enviar Mensagem</button>
+    <button id="checkWhatsApp">Verificar WhatsApp</button>
+    <button id="enviarMensagens" disabled>Enviar Mensagens</button>
 
-    <!-- Modal para QR Code -->
-    <div id="qrModal">
-        <div id="qrModalContent">
-            <h2>QR Code para Autenticação:</h2>
-            <img id="qrImage" alt="Código QR do WhatsApp" /> <!-- Aqui será exibido o QR Code -->
-            <button onclick="closeModal()">Fechar</button> <!-- Botão para fechar o modal -->
-        </div>
+    <div id="qrCodeDiv" style="display:none;">
+        <h2>QR Code:</h2>
+        <img id="qrCode" />
     </div>
 
     <script>
-        async function checkWhatsAppAndSend() {
-            try {
-                const response = await fetch('/api/check-whatsapp');
-                const result = await response.json();
+        const checkWhatsAppButton = document.getElementById('checkWhatsApp');
+        const enviarMensagensButton = document.getElementById('enviarMensagens');
+        const qrCodeDiv = document.getElementById('qrCodeDiv');
+        const qrCodeImg = document.getElementById('qrCode');
 
-                if (result.authenticated) {
-                    alert('WhatsApp autenticado! Pronto para enviar mensagem.');
-                } else if (result.qrImage) {
-                    // Exibe o modal e mostra o QR code como imagem
-                    document.getElementById('qrModal').style.display = 'flex';
-                    document.getElementById('qrImage').src = result.qrImage; // Exibe a imagem do QR Code
-                } else {
-                    alert('QR code não disponível. Tente novamente.');
-                }
-            } catch (error) {
-                console.error('Erro ao verificar a autenticação do WhatsApp:', error);
-                alert('Erro ao verificar a autenticação do WhatsApp.');
+        checkWhatsAppButton.addEventListener('click', async () => {
+            const response = await fetch('/api/check-whatsapp');
+            const result = await response.json();
+
+            if (result.authenticated) {
+                alert('WhatsApp conectado!');
+                enviarMensagensButton.disabled = false;
+            } else if (result.qrCode) {
+                qrCodeDiv.style.display = 'block';
+                qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${result.qrCode}`;
+            } else {
+                alert('Erro ao conectar ao WhatsApp. Tente novamente.');
             }
-        }
+        });
 
-        async function sendMessage() {
-            const number = document.getElementById('number').value;
-            const message = document.getElementById('message').value;
+        enviarMensagensButton.addEventListener('click', async () => {
+            const response = await fetch('/api/enviar', {
+                method: 'POST'
+            });
+            const result = await response.json();
 
-            if (!number || !message) {
-                alert('Por favor, insira o número de telefone e a mensagem.');
-                return;
+            if (result.success) {
+                alert(result.message);
+            } else {
+                alert('Erro ao enviar mensagens.');
             }
-
-            try {
-                const response = await fetch('/api/send-message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ number, message }),
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    alert('Mensagem enviada com sucesso!');
-                } else {
-                    alert('Erro ao enviar a mensagem: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Erro ao enviar a mensagem:', error);
-                alert('Erro ao enviar a mensagem.');
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('qrModal').style.display = 'none'; // Fechar o modal
-        }
+        });
     </script>
 </body>
 </html>
