@@ -1,58 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Envio de Mensagens WhatsApp</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        button { padding: 10px; background-color: #25D366; color: white; border: none; cursor: pointer; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comunicação Frontend e Backend</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Envio de Mensagens para Coordenadores</h1>
+  <h1>Comunicação Frontend e Backend</h1>
+  <button id="testButton">Testar Comunicação</button>
+  <p id="response"></p>
 
-    <button id="checkWhatsApp">Verificar WhatsApp</button>
-    <button id="enviarMensagens" disabled>Enviar Mensagens</button>
-
-    <div id="qrCodeDiv" style="display:none;">
-        <h2>QR Code:</h2>
-        <img id="qrCode" />
-    </div>
-
-    <script>
-        const checkWhatsAppButton = document.getElementById('checkWhatsApp');
-        const enviarMensagensButton = document.getElementById('enviarMensagens');
-        const qrCodeDiv = document.getElementById('qrCodeDiv');
-        const qrCodeImg = document.getElementById('qrCode');
-
-        checkWhatsAppButton.addEventListener('click', async () => {
-            const response = await fetch('/api/check-whatsapp');
-            const result = await response.json();
-
-            if (result.authenticated) {
-                alert('WhatsApp conectado!');
-                enviarMensagensButton.disabled = false;
-            } else if (result.qrCode) {
-                qrCodeDiv.style.display = 'block';
-                qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${result.qrCode}`;
-            } else {
-                alert('Erro ao conectar ao WhatsApp. Tente novamente.');
-            }
-        });
-
-        enviarMensagensButton.addEventListener('click', async () => {
-            const response = await fetch('/api/enviar', {
-                method: 'POST'
-            });
-            const result = await response.json();
-
-            if (result.success) {
-                alert(result.message);
-            } else {
-                alert('Erro ao enviar mensagens.');
-            }
-        });
-    </script>
+  <script>
+    document.getElementById('testButton').addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/test');
+        const data = await response.json();
+        document.getElementById('response').textContent = data.message;
+      } catch (error) {
+        document.getElementById('response').textContent = 'Erro ao se comunicar com o backend';
+      }
+    });
+  </script>
 </body>
 </html>
