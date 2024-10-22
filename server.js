@@ -40,7 +40,7 @@ app.get('/api/check-whatsapp', (req, res) => {
 });
 
 // Aqui usamos a variável de ambiente PORT fornecida pelo Render
-const port = process.env.PORT || 3000; // Verifique se a porta está configurada corretamente
+const port = process.env.PORT || 1000; // Verifique se a porta está configurada corretamente
 
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);
