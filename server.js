@@ -29,7 +29,7 @@ fs.createReadStream('municipios.txt')
   });
 
 // Cliente WhatsApp
-let client = new Client();
+let client;
 
 function iniciarClienteWhatsApp() {
     client = new Client();
@@ -51,10 +51,12 @@ function iniciarClienteWhatsApp() {
         clientReady = true;
     });
 
-    client.on('disconnected', () => {
-        console.log('WhatsApp desconectado. Reinicializando...');
+    client.on('disconnected', (reason) => {
+        console.log('WhatsApp desconectado. Razão:', reason);
         clientReady = false;
-        iniciarClienteWhatsApp(); // Re-inicializar quando desconectar
+        setTimeout(() => {
+            iniciarClienteWhatsApp(); // Re-inicializar após 10 segundos
+        }, 10000); // 10 segundos de intervalo antes de reiniciar
     });
 
     client.initialize();
