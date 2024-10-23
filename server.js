@@ -138,7 +138,7 @@ const aguardarClientePronto = (callback) => {
 
 // Função para gerar PDF com os dados do coordenador
 const gerarPDF = (municipio, coordenador, dados, callback) => {
-    const doc = new PDFDocument({ size: 'A4', compress: true });
+    const doc = new PDFDocument({ size: 'A4', compress: true, margin: 30 });
 
     let buffers = [];
     doc.on('data', buffers.push.bind(buffers));
@@ -147,30 +147,56 @@ const gerarPDF = (municipio, coordenador, dados, callback) => {
         callback(pdfData.toString('base64'));
     });
 
+    // Cabeçalho do PDF
     doc.fontSize(16).text(`Relatório de Pendências - ${municipio}`, { align: 'center' });
     doc.moveDown();
     doc.fontSize(12).text(`Coordenador: ${coordenador}`);
     doc.moveDown();
 
-    // Adicionando a tabela no PDF
-    doc.fontSize(12);
+    // Definir o cabeçalho da tabela
     const table = {
         headers: ['Turma', 'Professor', 'Disciplina', 'Data', 'Falta'],
         rows: dados.map(item => [item.turma, item.professor, item.disciplina, item.data, item.falta])
     };
 
+    const tableTop = doc.y;
+    const cellPadding = 5;
+    const tableColumnWidths = [100, 150, 100, 100, 80]; // Definir a largura de cada coluna
+
+
+// Função para desenhar a linha do cabeçalho
+function desenharCabecalho() {
+    doc.fontSize(12).fillColor('black');
+    let x = doc.x;
     table.headers.forEach((header, i) => {
-        doc.text(header, { continued: i < table.headers.length - 1 });
+        doc.rect(x, tableTop, tableColumnWidths[i], 20).stroke();
+        doc.text(header, x + cellPadding, tableTop + cellPadding, { width: tableColumnWidths[i], align: 'center' });
+        x += tableColumnWidths[i];
     });
-    doc.moveDown();
+}
 
-    table.rows.forEach((row) => {
-        row.forEach((col, colIndex) => {
-            doc.text(col, { continued: colIndex < row.length - 1 });
-        });
-        doc.moveDown();
+// Função para desenhar uma linha da tabela
+function desenharLinha(linha, y, zebrada = false) {
+    doc.fontSize(10).fillColor(zebrada ? 'gray' : 'black');
+    let x = doc.x;
+    linha.forEach((coluna, i) => {
+        doc.rect(x, y, tableColumnWidths[i], 20).stroke();
+        doc.text(coluna, x + cellPadding, y + cellPadding, { width: tableColumnWidths[i], align: 'center' }); // Ajuste para centralizar o texto
+        x += tableColumnWidths[i];
+    });
+}
+
+    // Desenha o cabeçalho
+    desenharCabecalho();
+
+    // Desenhar as linhas da tabela com zebramento
+    let linhaY = tableTop + 20; // Posição da primeira linha
+    table.rows.forEach((linha, index) => {
+        desenharLinha(linha, linhaY, index % 2 === 0); // Adiciona o efeito zebrado
+        linhaY += 20; // Move para a próxima linha
     });
 
+    // Finaliza o documento
     doc.end();
 };
 
