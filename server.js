@@ -17,6 +17,7 @@ let municipiosData = [];
 let qrCodeData = null;
 let clientReady = false;
 
+// Carregar o CSV de municípios e URLs do arquivo municipios.txt
 fs.createReadStream('municipios.txt')
   .pipe(csv({ separator: ';', headers: ['municipio', 'url'] }))
   .on('data', (row) => {
@@ -91,34 +92,37 @@ app.get('/api/dados', async (req, res) => {
     }
 });
 
+// Ajustando a função para garantir que a coluna [5] seja o telefone
 const carregarDadosPorMunicipio = async (url) => {
     const response = await axios.get(url);
     const csvString = response.data;
     const data = [];
     csvString.split('\n').forEach((line, index) => {
-        if (index === 0) return;
+        if (index === 0) return;  // Ignorar cabeçalho do CSV
         const columns = line.split(',');
         data.push({
-            turma: columns[2],
-            professor: columns[3],
-            coordenador: columns[4],
-            telefone: columns[5],
-            disciplina: columns[7],
-            data: columns[8],
-            falta: columns[9]
+            turma: columns[2],  // Coluna para a turma
+            professor: columns[3],  // Coluna para o professor
+            coordenador: columns[4],  // Coluna para o coordenador
+            telefone: columns[5],  // Coluna para o telefone
+            disciplina: columns[7],  // Coluna para a disciplina
+            data: columns[8],  // Coluna para a data
+            falta: columns[9]  // Coluna para a falta
         });
     });
     return data;
 };
 
+// Função para formatar o número de telefone no padrão internacional (WhatsApp ID)
 const formatarTelefone = (telefone) => {
-    let telefoneCorrigido = telefone.replace(/\D/g, '');
+    let telefoneCorrigido = telefone.replace(/\D/g, '');  // Remove caracteres não numéricos
     if (!telefoneCorrigido.startsWith('55')) {
-        telefoneCorrigido = `55${telefoneCorrigido}`;
+        telefoneCorrigido = `55${telefoneCorrigido}`;  // Adiciona o código do país (Brasil) se não estiver presente
     }
-    return `${telefoneCorrigido}@c.us`;
+    return `${telefoneCorrigido}@c.us`;  // Adiciona o sufixo padrão do WhatsApp
 };
 
+// Verifica se o cliente está pronto antes de enviar a mensagem
 const aguardarClientePronto = (callback) => {
     if (clientReady) {
         callback();
@@ -128,10 +132,11 @@ const aguardarClientePronto = (callback) => {
                 clearInterval(interval);
                 callback();
             }
-        }, 2000);
+        }, 2000);  // Verifica a cada 2 segundos se o cliente está pronto
     }
 };
 
+// Função para gerar PDF com os dados do coordenador
 const gerarPDF = (municipio, coordenador, dados, callback) => {
     const doc = new PDFDocument({ size: 'A4', compress: true });
 
@@ -147,18 +152,19 @@ const gerarPDF = (municipio, coordenador, dados, callback) => {
     doc.fontSize(12).text(`Coordenador: ${coordenador}`);
     doc.moveDown();
 
+    // Adicionando a tabela no PDF
     doc.fontSize(12);
     const table = {
         headers: ['Turma', 'Professor', 'Disciplina', 'Data', 'Falta'],
         rows: dados.map(item => [item.turma, item.professor, item.disciplina, item.data, item.falta])
     };
 
-    for (let i = 0; i < table.headers.length; i++) {
-        doc.text(table.headers[i], { continued: i < table.headers.length - 1 });
-    }
+    table.headers.forEach((header, i) => {
+        doc.text(header, { continued: i < table.headers.length - 1 });
+    });
     doc.moveDown();
 
-    table.rows.forEach((row, rowIndex) => {
+    table.rows.forEach((row) => {
         row.forEach((col, colIndex) => {
             doc.text(col, { continued: colIndex < row.length - 1 });
         });
@@ -168,8 +174,9 @@ const gerarPDF = (municipio, coordenador, dados, callback) => {
     doc.end();
 };
 
+// Rota para enviar mensagens via WhatsApp com PDF anexado
 app.post('/api/enviar-mensagem', async (req, res) => {
-    const { municipio, coordenador, telefone, dados } = req.body;
+    const { municipio, coordenador, dados } = req.body;
 
     if (!clientReady) {
         return res.status(500).json({ error: 'WhatsApp não está conectado' });
@@ -177,6 +184,12 @@ app.post('/api/enviar-mensagem', async (req, res) => {
 
     const enviarMensagem = () => {
         try {
+            // Pega o primeiro telefone da lista (se necessário, pode ajustar para múltiplos telefones)
+            const telefone = dados[0].telefone;
+            if (!telefone) {
+                throw new Error('Número de telefone não fornecido.');
+            }
+
             const telefoneCorrigido = formatarTelefone(telefone);
             const welcomeMessage = `Olá *${coordenador}*! Aqui é o Assistente Virtual.\nIdentificamos pendências no preenchimento do *Diário de Classe*. Por favor, confira o relatório com as informações detalhadas a seguir.`;
 

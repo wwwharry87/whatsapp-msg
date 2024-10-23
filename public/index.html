@@ -108,17 +108,15 @@
             <label for="municipio">Município:</label>
             <select id="municipio" onchange="carregarDados()" style="width: 200px;">
                 <option value="">Selecione um município</option>
-                <!-- Opções de municípios carregadas dinamicamente -->
             </select>
 
             <label for="coordenador">Coordenador:</label>
             <select id="coordenador" onchange="filtrarPorCoordenador()" style="width: 200px;">
                 <option value="">Todos os Coordenadores</option>
-                <!-- Opções de coordenadores carregadas dinamicamente -->
             </select>
 
             <!-- Botão para enviar dados ao backend -->
-            <button onclick="verificarWhatsapp(); enviarDadosParaBackend();">
+            <button onclick="verificarWhatsapp()">
                 <i class="fab fa-whatsapp whatsapp-icon"></i> Enviar
             </button>
         </div>
@@ -138,6 +136,17 @@
                     <!-- Dados carregados dinamicamente -->
                 </tbody>
             </table>
+        </div>
+
+        <!-- Modal para QR code -->
+        <div id="qrModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="fecharModal()">&times;</span>
+                <h2>Conecte-se ao WhatsApp</h2>
+                <p>Escaneie o QR code abaixo para conectar o WhatsApp:</p>
+                <div id="qrCodeContainer"></div>
+                <button onclick="fecharModal()">Fechar</button>
+            </div>
         </div>
 
         <!-- Paginação -->
@@ -233,9 +242,11 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.connected) {
-                        console.log('WhatsApp conectado.');
+                        console.log('WhatsApp conectado. Enviando dados...');
+                        enviarDadosParaBackend();
                     } else if (data.qr) {
                         console.log('WhatsApp não conectado. Mostrando QR code.');
+                        abrirModalComQr(data.qr);
                     } else {
                         alert('Erro ao verificar WhatsApp. Tente novamente.');
                     }
@@ -243,49 +254,66 @@
                 .catch(error => console.error('Erro ao verificar WhatsApp:', error));
         }
 
+        // Função para abrir o modal com o QR code
+        function abrirModalComQr(qrCodeData) {
+            const qrModal = document.getElementById('qrModal');
+            const qrCodeContainer = document.getElementById('qrCodeContainer');
+            qrCodeContainer.innerHTML = ''; // Limpar conteúdo anterior
+
+            const qrCodeImg = document.createElement('img');
+            qrCodeImg.src = qrCodeData; // Usar o base64 diretamente como src
+            qrCodeImg.alt = 'QR Code para WhatsApp';
+            qrCodeImg.style.width = '300px'; // Ajustar tamanho conforme necessário
+            qrCodeContainer.appendChild(qrCodeImg);
+            
+            qrModal.style.display = "block";
+        }
+
+        // Função para fechar o modal
+        function fecharModal() {
+            document.getElementById('qrModal').style.display = "none";
+        }
+
         // Função para enviar os dados para o backend
         function enviarDadosParaBackend() {
-            const dadosFiltrados = coordenadorSelecionado
-                ? dadosCompletos.filter(item => item.coordenador === coordenadorSelecionado)
-                : dadosCompletos;
+    const dadosFiltrados = coordenadorSelecionado
+        ? dadosCompletos.filter(item => item.coordenador === coordenadorSelecionado && item.telefone)
+        : dadosCompletos.filter(item => item.telefone);  // Filtra somente os dados com número de telefone
 
-            if (!municipioSelecionado) {
-                alert('Por favor, selecione um município.');
-                return;
-            }
+    if (!municipioSelecionado) {
+        alert('Por favor, selecione um município.');
+        return;
+    }
 
-            const body = {
-                municipio: municipioSelecionado,
-                coordenador: coordenadorSelecionado || 'Todos os Coordenadores',
-                dados: dadosFiltrados
-            };
+    if (dadosFiltrados.length === 0) {
+        alert('Nenhum número de telefone disponível para o coordenador selecionado.');
+        return;
+    }
 
-            fetch('/api/enviar-mensagem', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(body)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Mensagem e PDF enviados com sucesso!');
-                } else {
-                    alert('Erro ao enviar mensagem.');
-                }
-            })
-            .catch(error => console.error('Erro ao enviar mensagem:', error));
+    const body = {
+        municipio: municipioSelecionado,
+        coordenador: coordenadorSelecionado || 'Todos os Coordenadores',
+        dados: dadosFiltrados
+    };
+
+    fetch('/api/enviar-mensagem', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Mensagem e PDF enviados com sucesso!');
+        } else {
+            alert('Erro ao enviar mensagem.');
         }
+    })
+    .catch(error => console.error('Erro ao enviar mensagem:', error));
+}
 
-        // Funções de paginação (se aplicável)
-        function paginaAnterior() {
-            // Implementação da paginação
-        }
-
-        function proximaPagina() {
-            // Implementação da paginação
-        }
 
         window.onload = carregarMunicipios;
     </script>
