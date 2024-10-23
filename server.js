@@ -5,20 +5,18 @@ const axios = require('axios');
 const PDFDocument = require('pdfkit');
 const path = require('path');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
-const qrcode = require('qrcode'); // Biblioteca para gerar QR code como imagem base64
+const qrcode = require('qrcode');
 
 const app = express();
 
-// Aumentando o limite de tamanho da requisição para lidar com PDFs maiores
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 let municipiosData = [];
-let qrCodeData = null; // Armazenar o QR code gerado
+let qrCodeData = null;
 let clientReady = false;
 
-// Carregar o CSV de municípios e URLs do arquivo municipios.txt
 fs.createReadStream('municipios.txt')
   .pipe(csv({ separator: ';', headers: ['municipio', 'url'] }))
   .on('data', (row) => {
@@ -28,15 +26,14 @@ fs.createReadStream('municipios.txt')
     console.log('Arquivo de municípios carregado com sucesso.');
   });
 
-// Cliente WhatsApp com persistência de sessão
 let client = new Client({
-    authStrategy: new LocalAuth({ clientId: 'whatsapp-client' }), // Salva a sessão localmente
+    authStrategy: new LocalAuth({ clientId: 'whatsapp-client' }),
 });
 
 function iniciarClienteWhatsApp() {
     client.on('qr', async (qr) => {
         try {
-            qrCodeData = await qrcode.toDataURL(qr); // Convertendo o QR code para base64
+            qrCodeData = await qrcode.toDataURL(qr);
             clientReady = false;
             console.log('QR code gerado e pronto para ser escaneado.');
         } catch (err) {
@@ -46,7 +43,7 @@ function iniciarClienteWhatsApp() {
 
     client.on('ready', () => {
         console.log('Cliente do WhatsApp está pronto!');
-        qrCodeData = null; // Limpar o QR code quando estiver conectado
+        qrCodeData = null;
         clientReady = true;
     });
 
@@ -54,34 +51,30 @@ function iniciarClienteWhatsApp() {
         console.log('WhatsApp desconectado. Razão:', reason);
         clientReady = false;
         setTimeout(() => {
-            iniciarClienteWhatsApp(); // Re-inicializar após 10 segundos
-        }, 10000); // 10 segundos de intervalo antes de reiniciar
+            iniciarClienteWhatsApp();
+        }, 10000);
     });
 
     client.initialize();
 }
 
-// Inicializar o cliente WhatsApp ao iniciar o serviço
 iniciarClienteWhatsApp();
 
-// Rota para verificar se o WhatsApp está conectado e fornecer o QR code como base64 se não estiver
 app.get('/api/check-whatsapp', (req, res) => {
     if (clientReady) {
         res.json({ connected: true });
     } else if (qrCodeData) {
-        res.json({ connected: false, qr: qrCodeData }); // Enviar o QR code como base64
+        res.json({ connected: false, qr: qrCodeData });
     } else {
         res.json({ connected: false, qr: null });
     }
 });
 
-// Rota para carregar os municípios
 app.get('/api/municipios', (req, res) => {
     const municipios = municipiosData.map(row => row.municipio);
-    res.json([...new Set(municipios)]); // Remover duplicatas
+    res.json([...new Set(municipios)]);
 });
 
-// Rota para carregar os dados filtrados e paginados
 app.get('/api/dados', async (req, res) => {
     const { municipio } = req.query;
 
@@ -98,7 +91,6 @@ app.get('/api/dados', async (req, res) => {
     }
 });
 
-// Função para carregar dados CSV de uma URL (ajustada para incluir telefone na coluna [5])
 const carregarDadosPorMunicipio = async (url) => {
     const response = await axios.get(url);
     const csvString = response.data;
@@ -109,8 +101,8 @@ const carregarDadosPorMunicipio = async (url) => {
         data.push({
             turma: columns[2],
             professor: columns[3],
-            coordenador: columns[4], // Coordenador na coluna [4]
-            telefone: columns[5], // Telefone na coluna [5]
+            coordenador: columns[4],
+            telefone: columns[5],
             disciplina: columns[7],
             data: columns[8],
             falta: columns[9]
@@ -119,86 +111,89 @@ const carregarDadosPorMunicipio = async (url) => {
     return data;
 };
 
-// Função para formatar o número de telefone no padrão internacional (WhatsApp ID)
 const formatarTelefone = (telefone) => {
-    let telefoneCorrigido = telefone.replace(/\D/g, ''); // Remove caracteres não numéricos
+    let telefoneCorrigido = telefone.replace(/\D/g, '');
     if (!telefoneCorrigido.startsWith('55')) {
-        telefoneCorrigido = `55${telefoneCorrigido}`; // Adiciona o código do país (Brasil) se não estiver presente
+        telefoneCorrigido = `55${telefoneCorrigido}`;
     }
-    return `${telefoneCorrigido}@c.us`; // Adiciona o sufixo padrão do WhatsApp
+    return `${telefoneCorrigido}@c.us`;
 };
 
-// Função para garantir que o cliente está pronto antes de enviar
 const aguardarClientePronto = (callback) => {
     if (clientReady) {
         callback();
     } else {
-        console.log("Cliente ainda não está pronto. Aguardando...");
         const interval = setInterval(() => {
             if (clientReady) {
                 clearInterval(interval);
-                console.log("Cliente pronto. Continuando operação.");
                 callback();
             }
-        }, 2000); // Verifica a cada 2 segundos se o cliente está pronto
+        }, 2000);
     }
 };
 
-// Função para gerar PDF otimizando seu tamanho com fonte 12
-const gerarPDF = (coordenador, municipio, data, callback) => {
-    const doc = new PDFDocument({ size: 'A4', compress: true }); // Ativando compressão
+const gerarPDF = (municipio, coordenador, dados, callback) => {
+    const doc = new PDFDocument({ size: 'A4', compress: true });
 
     let buffers = [];
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => {
         let pdfData = Buffer.concat(buffers);
-        callback(pdfData.toString('base64')); // Retorna em base64 para enviar via WhatsApp
+        callback(pdfData.toString('base64'));
     });
 
     doc.fontSize(16).text(`Relatório de Pendências - ${municipio}`, { align: 'center' });
     doc.moveDown();
-    doc.fontSize(12).text(`Coordenador: ${coordenador}`, { align: 'left' });
+    doc.fontSize(12).text(`Coordenador: ${coordenador}`);
     doc.moveDown();
-    doc.fontSize(12).text(`Data: ${data}`);
+
+    doc.fontSize(12);
+    const table = {
+        headers: ['Turma', 'Professor', 'Disciplina', 'Data', 'Falta'],
+        rows: dados.map(item => [item.turma, item.professor, item.disciplina, item.data, item.falta])
+    };
+
+    for (let i = 0; i < table.headers.length; i++) {
+        doc.text(table.headers[i], { continued: i < table.headers.length - 1 });
+    }
+    doc.moveDown();
+
+    table.rows.forEach((row, rowIndex) => {
+        row.forEach((col, colIndex) => {
+            doc.text(col, { continued: colIndex < row.length - 1 });
+        });
+        doc.moveDown();
+    });
+
     doc.end();
 };
 
-// Rota para enviar mensagens via WhatsApp com PDF anexado
 app.post('/api/enviar-mensagem', async (req, res) => {
-    const { municipio, coordenador, telefone, pdfBase64 } = req.body;
+    const { municipio, coordenador, telefone, dados } = req.body;
 
     if (!clientReady) {
-        console.error('WhatsApp não está conectado.');
         return res.status(500).json({ error: 'WhatsApp não está conectado' });
     }
 
     const enviarMensagem = () => {
         try {
             const telefoneCorrigido = formatarTelefone(telefone);
-            console.log(`Enviando mensagem para o telefone: ${telefoneCorrigido} e coordenador: ${coordenador}`);
-
-            // Enviar a mensagem de boas-vindas primeiro
             const welcomeMessage = `Olá *${coordenador}*! Aqui é o Assistente Virtual.\nIdentificamos pendências no preenchimento do *Diário de Classe*. Por favor, confira o relatório com as informações detalhadas a seguir.`;
-            client.sendMessage(telefoneCorrigido, welcomeMessage).then(() => {
-                console.log('Mensagem inicial enviada com sucesso.');
 
-                // Após enviar a mensagem, enviar o PDF
-                const media = new MessageMedia('application/pdf', pdfBase64, `relatorio_${coordenador}.pdf`);
-                console.log('PDF convertido para MessageMedia com sucesso.');
-                client.sendMessage(telefoneCorrigido, media).then(() => {
-                    console.log('PDF enviado com sucesso via WhatsApp.');
-                    res.json({ success: true, message: 'Mensagem e PDF enviados com sucesso!' });
-                }).catch(err => {
-                    console.error('Erro ao enviar PDF via WhatsApp:', err.message);
-                    res.status(500).json({ error: 'Erro ao enviar PDF via WhatsApp.', details: err.message });
+            client.sendMessage(telefoneCorrigido, welcomeMessage).then(() => {
+                gerarPDF(municipio, coordenador, dados, (pdfBase64) => {
+                    const media = new MessageMedia('application/pdf', pdfBase64, `relatorio_${coordenador}.pdf`);
+                    client.sendMessage(telefoneCorrigido, media).then(() => {
+                        res.json({ success: true, message: 'Mensagem e PDF enviados com sucesso!' });
+                    }).catch(err => {
+                        res.status(500).json({ error: 'Erro ao enviar PDF via WhatsApp.', details: err.message });
+                    });
                 });
             }).catch(err => {
-                console.error('Erro ao enviar mensagem inicial via WhatsApp:', err.message);
-                res.status(500).json({ error: 'Erro ao enviar mensagem via WhatsApp.', details: err.message });
+                res.status(500).json({ error: 'Erro ao enviar mensagem inicial via WhatsApp.', details: err.message });
             });
 
         } catch (error) {
-            console.error('Erro ao processar o envio de mensagem:', error.message);
             res.status(500).json({ error: 'Erro ao processar envio de mensagem.', details: error.message });
         }
     };
