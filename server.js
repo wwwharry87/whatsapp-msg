@@ -36,7 +36,6 @@ let client = new Client({
 function iniciarClienteWhatsApp() {
     client.on('qr', async (qr) => {
         try {
-            // Gerar o QR code como imagem base64
             qrCodeData = await qrcode.toDataURL(qr); // Convertendo o QR code para base64
             clientReady = false;
             console.log('QR code gerado e pronto para ser escaneado.');
@@ -145,6 +144,25 @@ const aguardarClientePronto = (callback) => {
     }
 };
 
+// Função para gerar PDF otimizando seu tamanho com fonte 12
+const gerarPDF = (coordenador, municipio, data, callback) => {
+    const doc = new PDFDocument({ size: 'A4', compress: true }); // Ativando compressão
+
+    let buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', () => {
+        let pdfData = Buffer.concat(buffers);
+        callback(pdfData.toString('base64')); // Retorna em base64 para enviar via WhatsApp
+    });
+
+    doc.fontSize(16).text(`Relatório de Pendências - ${municipio}`, { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Coordenador: ${coordenador}`, { align: 'left' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Data: ${data}`);
+    doc.end();
+};
+
 // Rota para enviar mensagens via WhatsApp com PDF anexado
 app.post('/api/enviar-mensagem', async (req, res) => {
     const { municipio, coordenador, telefone, pdfBase64 } = req.body;
@@ -158,20 +176,24 @@ app.post('/api/enviar-mensagem', async (req, res) => {
         try {
             const telefoneCorrigido = formatarTelefone(telefone);
             console.log(`Enviando mensagem para o telefone: ${telefoneCorrigido} e coordenador: ${coordenador}`);
-            
-            // Converter o PDF base64 para um objeto de mídia para enviar pelo WhatsApp
-            const media = new MessageMedia('application/pdf', pdfBase64, `relatorio_${coordenador}.pdf`);
-            console.log('PDF convertido para MessageMedia com sucesso.');
 
-            // Mensagem personalizada
-            const message = `Olá, ${coordenador}, segue o relatório de ${municipio}.`;
+            // Enviar a mensagem de boas-vindas primeiro
+            const welcomeMessage = `Olá *${coordenador}*! Aqui é o Assistente Virtual.\nIdentificamos pendências no preenchimento do *Diário de Classe*. Por favor, confira o relatório com as informações detalhadas a seguir.`;
+            client.sendMessage(telefoneCorrigido, welcomeMessage).then(() => {
+                console.log('Mensagem inicial enviada com sucesso.');
 
-            // Enviar a mensagem com o PDF anexado
-            client.sendMessage(telefoneCorrigido, message, { media }).then(() => {
-                console.log('Mensagem enviada com sucesso via WhatsApp.');
-                res.json({ success: true, message: 'Mensagem enviada com sucesso!' });
+                // Após enviar a mensagem, enviar o PDF
+                const media = new MessageMedia('application/pdf', pdfBase64, `relatorio_${coordenador}.pdf`);
+                console.log('PDF convertido para MessageMedia com sucesso.');
+                client.sendMessage(telefoneCorrigido, media).then(() => {
+                    console.log('PDF enviado com sucesso via WhatsApp.');
+                    res.json({ success: true, message: 'Mensagem e PDF enviados com sucesso!' });
+                }).catch(err => {
+                    console.error('Erro ao enviar PDF via WhatsApp:', err.message);
+                    res.status(500).json({ error: 'Erro ao enviar PDF via WhatsApp.', details: err.message });
+                });
             }).catch(err => {
-                console.error('Erro ao enviar mensagem via WhatsApp:', err.message);
+                console.error('Erro ao enviar mensagem inicial via WhatsApp:', err.message);
                 res.status(500).json({ error: 'Erro ao enviar mensagem via WhatsApp.', details: err.message });
             });
 

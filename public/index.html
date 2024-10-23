@@ -300,50 +300,54 @@
             document.getElementById('qrModal').style.display = "none";
         }
 
-        // Função para gerar o PDF e enviar via WhatsApp
         function gerarPdfEnviar() {
-            if (!municipioSelecionado) {
-                alert('Por favor, selecione um município.');
-                return;
-            }
+    if (!municipioSelecionado) {
+        alert('Por favor, selecione um município.');
+        return;
+    }
 
-            const element = document.getElementById('pdf-content');
-            
-            const opt = {
-                margin: 0.5,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
+    const element = document.getElementById('pdf-content');
+    
+    const opt = {
+        margin: 0.5,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    };
 
-            if (coordenadorSelecionado) {
-                console.log(`Gerando PDF para coordenador ${coordenadorSelecionado}`);
-                // Gerar PDF filtrado por coordenador
+    // Adicionar CSS inline para ajustar a fonte
+    element.style.fontSize = '12px';  // Define o tamanho da fonte para 12px
+
+    if (coordenadorSelecionado) {
+        console.log(`Gerando PDF para coordenador ${coordenadorSelecionado}`);
+        // Gerar PDF filtrado por coordenador
+        html2pdf().from(element).set(opt).outputPdf().then((pdfContent) => {
+            const pdfBase64 = btoa(pdfContent); // Converter para base64
+            enviarMensagemCoordenador(coordenadorSelecionado, pdfBase64);
+        });
+    } else {
+        console.log('Gerando PDF para todos os coordenadores');
+        // Gerar PDF para cada coordenador se nenhum estiver selecionado
+        coordenadoresUnicos.forEach(coordenador => {
+            const dadosFiltrados = dadosCompletos.filter(item => item.coordenador === coordenador);
+            listarDados(dadosFiltrados);
+
+            setTimeout(() => {
                 html2pdf().from(element).set(opt).outputPdf().then((pdfContent) => {
                     const pdfBase64 = btoa(pdfContent); // Converter para base64
-                    enviarMensagemCoordenador(coordenadorSelecionado, pdfBase64);
+                    enviarMensagemCoordenador(coordenador, pdfBase64);
                 });
-            } else {
-                console.log('Gerando PDF para todos os coordenadores');
-                // Gerar PDF para cada coordenador se nenhum estiver selecionado
-                coordenadoresUnicos.forEach(coordenador => {
-                    const dadosFiltrados = dadosCompletos.filter(item => item.coordenador === coordenador);
-                    listarDados(dadosFiltrados);
+            }, 500);
+        });
 
-                    setTimeout(() => {
-                        html2pdf().from(element).set(opt).outputPdf().then((pdfContent) => {
-                            const pdfBase64 = btoa(pdfContent); // Converter para base64
-                            enviarMensagemCoordenador(coordenador, pdfBase64);
-                        });
-                    }, 500);
-                });
+        // Reverter para mostrar todos os dados após geração
+        setTimeout(() => {
+            listarDados(dadosCompletos);
+        }, 1000);
+    }
+}
 
-                // Reverter para mostrar todos os dados após geração
-                setTimeout(() => {
-                    listarDados(dadosCompletos);
-                }, 1000);
-            }
-        }
 
         // Enviar mensagem para coordenador específico com PDF anexado
         function enviarMensagemCoordenador(coordenador, pdfBase64) {
