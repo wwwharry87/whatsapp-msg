@@ -45,25 +45,44 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
         }
         button:hover {
             background-color: #218838;
-        }
-        .pagination {
-            text-align: center;
-            margin-top: 20px;
         }
         .action-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            gap: 20px;
         }
-        .action-bar button {
-            margin-left: auto;
+        label {
+            margin-right: 10px;
+        }
+        select {
+            width: 240px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            background-color: #fff;
         }
         .whatsapp-icon {
             margin-right: 10px;
+        }
+        /* Icone de status do WhatsApp */
+        .status-indicator {
+            font-size: 24px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .status-indicator.connected {
+            color: green;
+        }
+        .status-indicator.disconnected {
+            color: red;
         }
         /* Modal styling */
         .modal {
@@ -98,25 +117,42 @@
             text-decoration: none;
             cursor: pointer;
         }
+        /* Botão desabilitado */
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
     </style>
+    <!-- Adiciona ícone do WhatsApp -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <h1>Informações de Coordenadores</h1>
 
         <div class="action-bar">
+            <!-- Status do WhatsApp -->
+            <span id="whatsapp-status" class="status-indicator disconnected">
+                <i class="fas fa-circle"></i>
+            </span>
+            
             <label for="municipio">Município:</label>
-            <select id="municipio" onchange="carregarDados()" style="width: 200px;">
+            <select id="municipio" onchange="carregarDados()">
                 <option value="">Selecione um município</option>
             </select>
 
             <label for="coordenador">Coordenador:</label>
-            <select id="coordenador" onchange="filtrarPorCoordenador()" style="width: 200px;">
+            <select id="coordenador" onchange="filtrarPorCoordenador()">
                 <option value="">Todos os Coordenadores</option>
             </select>
 
+            <!-- Botão para conectar ao WhatsApp -->
+            <button id="conectar-btn" style="display:none;" onclick="abrirModalParaConectar()">
+                <i class="fab fa-whatsapp whatsapp-icon"></i> Conectar ao WhatsApp
+            </button>
+
             <!-- Botão para enviar dados ao backend -->
-            <button onclick="verificarWhatsapp()">
+            <button id="enviar-btn" onclick="verificarWhatsapp()" disabled>
                 <i class="fab fa-whatsapp whatsapp-icon"></i> Enviar
             </button>
         </div>
@@ -164,6 +200,55 @@
         let coordenadorSelecionado = "";
         let dadosCompletos = [];
         let coordenadoresUnicos = [];
+
+        // Verificar se o WhatsApp está conectado ao carregar a página
+        window.onload = function () {
+            carregarMunicipios();
+            verificarStatusWhatsapp(); // Verificação automática de conexão
+        };
+
+        // Verificar automaticamente se o WhatsApp está conectado
+        function verificarStatusWhatsapp() {
+            fetch('/api/check-whatsapp')
+                .then(response => response.json())
+                .then(data => {
+                    const statusIndicator = document.getElementById('whatsapp-status');
+                    const enviarBtn = document.getElementById('enviar-btn');
+                    const conectarBtn = document.getElementById('conectar-btn');
+                    
+                    if (data.connected) {
+                        console.log('WhatsApp conectado automaticamente.');
+                        statusIndicator.classList.remove('disconnected');
+                        statusIndicator.classList.add('connected');
+                        enviarBtn.disabled = false;  // Habilita o botão "Enviar"
+                        conectarBtn.style.display = 'none'; // Esconde o botão "Conectar"
+                    } else if (data.qr) {
+                        console.log('WhatsApp não conectado. Exibindo botão de conectar.');
+                        statusIndicator.classList.remove('connected');
+                        statusIndicator.classList.add('disconnected');
+                        enviarBtn.disabled = true;  // Desabilita o botão "Enviar"
+                        conectarBtn.style.display = 'inline-block'; // Exibe o botão "Conectar"
+                    } else {
+                        alert('Erro ao verificar WhatsApp. Tente novamente.');
+                    }
+                })
+                .catch(error => console.error('Erro ao verificar WhatsApp:', error));
+        }
+
+        // Abrir o modal para conectar ao WhatsApp (exibir QR code)
+        function abrirModalParaConectar() {
+            console.log('Abrindo modal para conectar...');
+            fetch('/api/check-whatsapp')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.qr) {
+                        abrirModalComQr(data.qr);
+                    } else {
+                        alert('Erro ao tentar conectar. Tente novamente.');
+                    }
+                })
+                .catch(error => console.error('Erro ao abrir modal de conexão:', error));
+        }
 
         // Carregar os municípios
         function carregarMunicipios() {
@@ -241,11 +326,20 @@
             fetch('/api/check-whatsapp')
                 .then(response => response.json())
                 .then(data => {
+                    const statusIndicator = document.getElementById('whatsapp-status');
+                    const enviarBtn = document.getElementById('enviar-btn');
+                    
                     if (data.connected) {
                         console.log('WhatsApp conectado. Enviando dados...');
+                        statusIndicator.classList.remove('disconnected');
+                        statusIndicator.classList.add('connected');
+                        enviarBtn.disabled = false;  // Habilita o botão "Enviar"
                         enviarDadosParaBackend();
                     } else if (data.qr) {
                         console.log('WhatsApp não conectado. Mostrando QR code.');
+                        statusIndicator.classList.remove('connected');
+                        statusIndicator.classList.add('disconnected');
+                        enviarBtn.disabled = true;  // Desabilita o botão "Enviar"
                         abrirModalComQr(data.qr);
                     } else {
                         alert('Erro ao verificar WhatsApp. Tente novamente.');
@@ -276,46 +370,44 @@
 
         // Função para enviar os dados para o backend
         function enviarDadosParaBackend() {
-    const dadosFiltrados = coordenadorSelecionado
-        ? dadosCompletos.filter(item => item.coordenador === coordenadorSelecionado && item.telefone)
-        : dadosCompletos.filter(item => item.telefone);  // Filtra somente os dados com número de telefone
+            const dadosFiltrados = coordenadorSelecionado
+                ? dadosCompletos.filter(item => item.coordenador === coordenadorSelecionado && item.telefone)
+                : dadosCompletos.filter(item => item.telefone);  // Filtra somente os dados com número de telefone
 
-    if (!municipioSelecionado) {
-        alert('Por favor, selecione um município.');
-        return;
-    }
+            if (!municipioSelecionado) {
+                alert('Por favor, selecione um município.');
+                return;
+            }
 
-    if (dadosFiltrados.length === 0) {
-        alert('Nenhum número de telefone disponível para o coordenador selecionado.');
-        return;
-    }
+            if (dadosFiltrados.length === 0) {
+                alert('Nenhum número de telefone disponível para o coordenador selecionado.');
+                return;
+            }
 
-    const body = {
-        municipio: municipioSelecionado,
-        coordenador: coordenadorSelecionado || 'Todos os Coordenadores',
-        dados: dadosFiltrados
-    };
+            const body = {
+                municipio: municipioSelecionado,
+                coordenador: coordenadorSelecionado || 'Todos os Coordenadores',
+                dados: dadosFiltrados
+            };
 
-    fetch('/api/enviar-mensagem', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Mensagem e PDF enviados com sucesso!');
-        } else {
-            alert('Erro ao enviar mensagem.');
+            fetch('/api/enviar-mensagem', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Mensagem e PDF enviados com sucesso!');
+                } else {
+                    alert('Erro ao enviar mensagem.');
+                }
+            })
+            .catch(error => console.error('Erro ao enviar mensagem:', error));
         }
-    })
-    .catch(error => console.error('Erro ao enviar mensagem:', error));
-}
 
-
-        window.onload = carregarMunicipios;
     </script>
 </body>
 </html>

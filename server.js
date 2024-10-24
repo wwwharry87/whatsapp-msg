@@ -4,11 +4,12 @@ const path = require('path');
 const csv = require('csv-parser');
 const axios = require('axios');
 const ExcelJS = require('exceljs');
-const { jsPDF } = require('jspdf');
-require('jspdf-autotable');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
-const iconv = require('iconv-lite');  // Corrigir codificação UTF-8
+const iconv = require('iconv-lite');  // Garantir codificação UTF-8
+const pdfMake = require('pdfmake/build/pdfmake');
+const pdfFonts = require('pdfmake/build/vfs_fonts');
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 const app = express();
 
@@ -177,51 +178,55 @@ const gerarExcel = async (coordenador, dados) => {
     return nomeArquivoExcel;
 };
 
-// Função para gerar PDF com jsPDF e ajuste de margem e codificação UTF-8
+// Função para gerar PDF com PDFMake
 const gerarPDF = async (coordenador, dados, callback) => {
-    const doc = new jsPDF({
-        unit: 'pt',
-        format: 'a4'
+    const tableBody = [
+        [{ text: 'Turma', bold: true }, { text: 'Professor', bold: true }, { text: 'Disciplina', bold: true }, { text: 'Data', bold: true }, { text: 'Falta', bold: true }]
+    ];
+
+    // Inserir os dados na tabela
+    dados.forEach(dado => {
+        tableBody.push([
+            dado.turma || '',
+            dado.professor || '',
+            dado.disciplina || '',
+            dado.data || '',
+            dado.falta || ''
+        ]);
     });
 
-    const tableData = dados.map(dado => [
-        iconv.decode(Buffer.from(dado.turma, 'binary'), 'utf8'),
-        iconv.decode(Buffer.from(dado.professor, 'binary'), 'utf8'),
-        iconv.decode(Buffer.from(dado.disciplina, 'binary'), 'utf8'),
-        iconv.decode(Buffer.from(dado.data, 'binary'), 'utf8'),
-        iconv.decode(Buffer.from(dado.falta, 'binary'), 'utf8')
-    ]);
-
-    doc.setFont('helvetica', 'normal');  // Definir fonte Helvetica UTF-8
-    doc.setFontSize(14);
-    doc.text(`Relatório de Pendências - Coordenador: ${coordenador}`, 40, 40);  // Ajustando a margem superior
-    doc.setFontSize(10);
-
-    doc.autoTable({
-        head: [['Turma', 'Professor', 'Disciplina', 'Data', 'Falta']],
-        body: tableData,
+    const docDefinition = {
+        content: [
+            { text: `Relatório de Pendências - Coordenador: ${coordenador}`, style: 'header' },
+            {
+                table: {
+                    headerRows: 1,
+                    widths: [55, 145, 130, 75, 90],
+                    body: tableBody
+                }
+            }
+        ],
         styles: {
-            font: 'helvetica',
-            fontSize: 10,
-            cellPadding: 5,
-            halign: 'left',
-            valign: 'middle'
-        },
-        columnStyles: {
-            0: { cellWidth: 55 },  // Aumentar a largura da coluna "Turma"
-            1: { cellWidth: 150 },  // Aumentar a largura da coluna "Professor"
-            2: { cellWidth: 135 },  // Aumentar a largura da coluna "Disciplina"
-            3: { cellWidth: 80 },  // Aumentar a largura da coluna "Data"
-            4: { cellWidth: 100 }   // Aumentar a largura da coluna "Falta"
-        },
-        theme: 'grid',
-        startY: 60  // Ajuste de margem superior para começar a tabela
+            header: {
+                fontSize: 14,
+                bold: true,
+                margin: [0, 20, 0, 10]
+            },
+            tableHeader: {
+                bold: true,
+                fontSize: 12,
+                color: 'black',
+                alignment: 'center'
+            }
+        }
+    };
+
+    const pdfDoc = pdfMake.createPdf(docDefinition);
+    pdfDoc.getBuffer(buffer => {
+        const nomeArquivoPDF = `upload/${coordenador.replace(/\s+/g, '_')}.pdf`;
+        fs.writeFileSync(nomeArquivoPDF, buffer);
+        callback(nomeArquivoPDF);
     });
-
-    const nomeArquivoPDF = `upload/${coordenador.replace(/\s+/g, '_')}.pdf`;
-    fs.writeFileSync(nomeArquivoPDF, doc.output());
-
-    callback(nomeArquivoPDF);
 };
 
 app.post('/api/enviar-mensagem', async (req, res) => {
@@ -247,14 +252,17 @@ app.post('/api/enviar-mensagem', async (req, res) => {
                     client.sendMessage(telefoneCorrigido, media).then(() => {
                         res.json({ success: true, message: 'Mensagem e arquivos enviados com sucesso!' });
                     }).catch(err => {
+                        console.error("Erro ao enviar PDF via WhatsApp:", err);
                         res.status(500).json({ error: 'Erro ao enviar PDF via WhatsApp.', details: err.message });
                     });
                 });
             }).catch(err => {
+                console.error("Erro ao enviar mensagem inicial via WhatsApp:", err);
                 res.status(500).json({ error: 'Erro ao enviar mensagem inicial via WhatsApp.', details: err.message });
             });
 
         } catch (error) {
+            console.error("Erro ao processar envio de mensagem:", error);
             res.status(500).json({ error: 'Erro ao processar envio de mensagem.', details: error.message });
         }
     };
