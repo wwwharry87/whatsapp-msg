@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - CoordInforma</title>
+    <style>
+        /* Estilo geral do corpo */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            overflow: hidden;
+        }
+
+        /* Fundo dinâmico */
+        .background-images {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            animation: fade 20s infinite;
+        }
+
+        .background-images img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 3s ease-in-out;
+        }
+
+        .background-images img.active {
+            opacity: 1;
+        }
+
+        @keyframes fade {
+            0% { opacity: 0; }
+            25% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* Container principal de login */
+        .login-container {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(8px);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            z-index: 1;
+            position: relative;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #00d4ff;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: none;
+            border-radius: 25px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+            outline: none;
+            text-align: center;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input:focus {
+            border: 1px solid #00d4ff;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            background-color: #00d4ff;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #00a6cc;
+        }
+
+        .error {
+            color: #ff6961;
+            margin-bottom: 10px;
+        }
+
+        .login-container h3 {
+            font-size: 14px;
+            margin-top: 30px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .login-container h3 a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .login-container h3 a:hover {
+            color: #00a6cc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="background-images">
+        <img src="educacao1.jpg" class="active" alt="Educação Pública">
+        <img src="educacao2.jpg" alt="Tecnologia na Educação">
+        <img src="educacao3.jpg" alt="Inteligência Artificial">
+    </div>
+
+    <div class="login-container">
+        <h2>CoordInforma Login</h2>
+
+        <!-- Exibe a mensagem de erro caso login falhe -->
+        <div id="error-message" class="error"></div>
+
+        <!-- Formulário de login -->
+        <form id="loginForm" onsubmit="return login(event)">
+            <input type="text" id="username" placeholder="Usuário" required>
+            <input type="password" id="password" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+        </form>
+
+        <!-- Texto opcional abaixo -->
+        <h3>Esqueceu a senha? <a href="#">Recuperar</a></h3>
+    </div>
+
+    <script>
+        // Função para alternar as imagens de fundo
+        let currentImageIndex = 0;
+        const images = document.querySelectorAll('.background-images img');
+
+        setInterval(() => {
+            images[currentImageIndex].classList.remove('active');
+            currentImageIndex = (currentImageIndex + 1) % images.length;
+            images[currentImageIndex].classList.add('active');
+        }, 8000); // Tempo de transição entre as imagens
+
+        // Função para realizar o login
+        function login(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirecionar para o sistema principal após login bem-sucedido
+                    window.location.href = '/dashboard';
+                } else {
+                    document.getElementById('error-message').textContent = 'Usuário ou senha incorretos';
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao fazer login:', error);
+                document.getElementById('error-message').textContent = 'Erro ao fazer login. Tente novamente.';
+            });
+        }
+    </script>
+</body>
+</html>
