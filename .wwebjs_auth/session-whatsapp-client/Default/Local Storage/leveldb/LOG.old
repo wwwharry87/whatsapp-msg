@@ -1,3 +1,5 @@
-2024/10/24-10:49:09.544 a303 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/MANIFEST-000001
-2024/10/24-10:49:09.545 a303 Recovering log #23
-2024/10/24-10:49:09.546 a303 Reusing old log /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/000023.log 
+2024/10/24-11:36:02.109 b103 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/MANIFEST-000001
+2024/10/24-11:36:02.110 b103 Recovering log #23
+2024/10/24-11:36:02.110 b103 Level-0 table #26: started
+2024/10/24-11:36:02.116 b103 Level-0 table #26: 14939 bytes OK
+2024/10/24-11:36:02.126 b103 Delete type=0 #23
