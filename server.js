@@ -10,17 +10,8 @@ const iconv = require('iconv-lite');  // Garantir codificação UTF-8
 const pdfMake = require('pdfmake/build/pdfmake');
 const pdfFonts = require('pdfmake/build/vfs_fonts');
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
-const session = require('express-session');  // Gerenciamento de sessão para login
 
 const app = express();
-
-// Configurações da sessão
-app.use(session({
-    secret: 'segredo-super-seguro', // Troque para uma string mais segura
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Defina 'true' se estiver usando HTTPS
-}));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -30,43 +21,6 @@ let municipiosData = [];
 let qrCodeData = null;
 let clientReady = false;
 
-// Simulação de um banco de dados de usuários
-const users = {
-    'admin': '1234',  // Usuário: admin, Senha: 1234
-    'user1': 'senha1' // Você pode adicionar mais usuários e senhas
-};
-
-// Middleware para verificar se o usuário está logado
-function verificarAutenticacao(req, res, next) {
-    if (req.session.loggedIn) {
-        next(); // Usuário autenticado, pode acessar a aplicação
-    } else {
-        res.status(401).json({ message: 'Não autenticado. Faça o login para acessar.' });
-    }
-}
-
-// Rotas de login e logout
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-
-    if (users[username] && users[username] === password) {
-        req.session.loggedIn = true;
-        req.session.username = username;
-        res.json({ success: true, message: 'Login bem-sucedido!' });
-    } else {
-        res.status(401).json({ success: false, message: 'Usuário ou senha incorretos.' });
-    }
-});
-
-app.post('/api/logout', (req, res) => {
-    req.session.destroy();
-    res.json({ success: true, message: 'Logout realizado com sucesso.' });
-});
-
-// Todas as rotas abaixo desta linha precisam de autenticação
-app.use(verificarAutenticacao);
-
-// Rotas de WhatsApp, municípios e geração de PDFs continuam aqui...
 fs.createReadStream('municipios.txt')
   .pipe(csv({ separator: ';', headers: ['municipio', 'url'] }))
   .on('data', (row) => {
