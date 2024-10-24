@@ -1,11 +1,14 @@
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 const csv = require('csv-parser');
 const axios = require('axios');
-const PDFDocument = require('pdfkit');
-const path = require('path');
+const ExcelJS = require('exceljs');
+const { jsPDF } = require('jspdf');
+require('jspdf-autotable');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
+const iconv = require('iconv-lite');  // Corrigir codificação UTF-8
 
 const app = express();
 
@@ -17,7 +20,6 @@ let municipiosData = [];
 let qrCodeData = null;
 let clientReady = false;
 
-// Carregar o CSV de municípios e URLs do arquivo municipios.txt
 fs.createReadStream('municipios.txt')
   .pipe(csv({ separator: ';', headers: ['municipio', 'url'] }))
   .on('data', (row) => {
@@ -92,115 +94,136 @@ app.get('/api/dados', async (req, res) => {
     }
 });
 
-// Ajustando a função para garantir que a coluna [5] seja o telefone
+// Função para carregar os dados do CSV e garantir a codificação UTF-8
 const carregarDadosPorMunicipio = async (url) => {
-    const response = await axios.get(url);
-    const csvString = response.data;
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    const csvString = iconv.decode(Buffer.from(response.data), 'utf-8');  // Garantir codificação UTF-8
     const data = [];
     csvString.split('\n').forEach((line, index) => {
         if (index === 0) return;  // Ignorar cabeçalho do CSV
         const columns = line.split(',');
         data.push({
-            turma: columns[2],  // Coluna para a turma
-            professor: columns[3],  // Coluna para o professor
-            coordenador: columns[4],  // Coluna para o coordenador
-            telefone: columns[5],  // Coluna para o telefone
-            disciplina: columns[7],  // Coluna para a disciplina
-            data: columns[8],  // Coluna para a data
-            falta: columns[9]  // Coluna para a falta
+            turma: columns[2],
+            professor: columns[3],
+            coordenador: columns[4],
+            telefone: columns[5],
+            disciplina: columns[7],
+            data: columns[8],
+            falta: columns[9]
         });
     });
     return data;
 };
 
-// Função para formatar o número de telefone no padrão internacional (WhatsApp ID)
-const formatarTelefone = (telefone) => {
-    let telefoneCorrigido = telefone.replace(/\D/g, '');  // Remove caracteres não numéricos
-    if (!telefoneCorrigido.startsWith('55')) {
-        telefoneCorrigido = `55${telefoneCorrigido}`;  // Adiciona o código do país (Brasil) se não estiver presente
+// Função para gerar Excel
+const gerarExcel = async (coordenador, dados) => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Relatório de Pendências');
+
+    worksheet.columns = [
+        { header: 'Turma', key: 'turma', width: 15 },
+        { header: 'Professor', key: 'professor', width: 30 },
+        { header: 'Disciplina', key: 'disciplina', width: 20 },
+        { header: 'Data', key: 'data', width: 25 },
+        { header: 'Falta', key: 'falta', width: 30 }
+    ];
+
+    worksheet.getRow(1).eachCell((cell) => {
+        cell.font = { bold: true };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'D3D3D3' }
+        };
+    });
+
+    dados.forEach((dado, index) => {
+        const row = worksheet.addRow({
+            turma: dado.turma,
+            professor: dado.professor,
+            disciplina: dado.disciplina,
+            data: dado.data,
+            falta: dado.falta
+        });
+
+        if (index % 2 === 0) {
+            row.eachCell((cell) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'F5F5F5' }
+                };
+            });
+        }
+
+        row.font = { size: 10 };
+    });
+
+    worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+            cell.alignment = { wrapText: true };
+        });
+    });
+
+    const nomeArquivoExcel = `upload/${coordenador.replace(/\s+/g, '_')}.xlsx`;
+
+    if (!fs.existsSync('upload')) {
+        fs.mkdirSync('upload');
     }
-    return `${telefoneCorrigido}@c.us`;  // Adiciona o sufixo padrão do WhatsApp
+
+    await workbook.xlsx.writeFile(nomeArquivoExcel);
+
+    return nomeArquivoExcel;
 };
 
-// Verifica se o cliente está pronto antes de enviar a mensagem
-const aguardarClientePronto = (callback) => {
-    if (clientReady) {
-        callback();
-    } else {
-        const interval = setInterval(() => {
-            if (clientReady) {
-                clearInterval(interval);
-                callback();
-            }
-        }, 2000);  // Verifica a cada 2 segundos se o cliente está pronto
-    }
+// Função para gerar PDF com jsPDF e ajuste de margem e codificação UTF-8
+const gerarPDF = async (coordenador, dados, callback) => {
+    const doc = new jsPDF({
+        unit: 'pt',
+        format: 'a4'
+    });
+
+    const tableData = dados.map(dado => [
+        iconv.decode(Buffer.from(dado.turma, 'binary'), 'utf8'),
+        iconv.decode(Buffer.from(dado.professor, 'binary'), 'utf8'),
+        iconv.decode(Buffer.from(dado.disciplina, 'binary'), 'utf8'),
+        iconv.decode(Buffer.from(dado.data, 'binary'), 'utf8'),
+        iconv.decode(Buffer.from(dado.falta, 'binary'), 'utf8')
+    ]);
+
+    doc.setFont('helvetica', 'normal');  // Definir fonte Helvetica UTF-8
+    doc.setFontSize(14);
+    doc.text(`Relatório de Pendências - Coordenador: ${coordenador}`, 40, 40);  // Ajustando a margem superior
+    doc.setFontSize(10);
+
+    doc.autoTable({
+        head: [['Turma', 'Professor', 'Disciplina', 'Data', 'Falta']],
+        body: tableData,
+        styles: {
+            font: 'helvetica',
+            fontSize: 10,
+            cellPadding: 5,
+            halign: 'left',
+            valign: 'middle'
+        },
+        columnStyles: {
+            0: { cellWidth: 55 },  // Aumentar a largura da coluna "Turma"
+            1: { cellWidth: 150 },  // Aumentar a largura da coluna "Professor"
+            2: { cellWidth: 135 },  // Aumentar a largura da coluna "Disciplina"
+            3: { cellWidth: 80 },  // Aumentar a largura da coluna "Data"
+            4: { cellWidth: 100 }   // Aumentar a largura da coluna "Falta"
+        },
+        theme: 'grid',
+        startY: 60  // Ajuste de margem superior para começar a tabela
+    });
+
+    const nomeArquivoPDF = `upload/${coordenador.replace(/\s+/g, '_')}.pdf`;
+    fs.writeFileSync(nomeArquivoPDF, doc.output());
+
+    callback(nomeArquivoPDF);
 };
 
-// Função para gerar PDF com os dados do coordenador
-const gerarPDF = (municipio, coordenador, dados, callback) => {
-    const doc = new PDFDocument({ size: 'A4', compress: true, margin: 30 });
-
-    let buffers = [];
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {
-        let pdfData = Buffer.concat(buffers);
-        callback(pdfData.toString('base64'));
-    });
-
-    // Cabeçalho do PDF
-    doc.fontSize(16).text(`Relatório de Pendências - ${municipio}`, { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text(`Coordenador: ${coordenador}`);
-    doc.moveDown();
-
-    // Definir o cabeçalho da tabela
-    const table = {
-        headers: ['Turma', 'Professor', 'Disciplina', 'Data', 'Falta'],
-        rows: dados.map(item => [item.turma, item.professor, item.disciplina, item.data, item.falta])
-    };
-
-    const tableTop = doc.y;
-    const cellPadding = 5;
-    const tableColumnWidths = [100, 150, 100, 100, 80]; // Definir a largura de cada coluna
-
-
-// Função para desenhar a linha do cabeçalho
-function desenharCabecalho() {
-    doc.fontSize(12).fillColor('black');
-    let x = doc.x;
-    table.headers.forEach((header, i) => {
-        doc.rect(x, tableTop, tableColumnWidths[i], 20).stroke();
-        doc.text(header, x + cellPadding, tableTop + cellPadding, { width: tableColumnWidths[i], align: 'center' });
-        x += tableColumnWidths[i];
-    });
-}
-
-// Função para desenhar uma linha da tabela
-function desenharLinha(linha, y, zebrada = false) {
-    doc.fontSize(10).fillColor(zebrada ? 'gray' : 'black');
-    let x = doc.x;
-    linha.forEach((coluna, i) => {
-        doc.rect(x, y, tableColumnWidths[i], 20).stroke();
-        doc.text(coluna, x + cellPadding, y + cellPadding, { width: tableColumnWidths[i], align: 'center' }); // Ajuste para centralizar o texto
-        x += tableColumnWidths[i];
-    });
-}
-
-    // Desenha o cabeçalho
-    desenharCabecalho();
-
-    // Desenhar as linhas da tabela com zebramento
-    let linhaY = tableTop + 20; // Posição da primeira linha
-    table.rows.forEach((linha, index) => {
-        desenharLinha(linha, linhaY, index % 2 === 0); // Adiciona o efeito zebrado
-        linhaY += 20; // Move para a próxima linha
-    });
-
-    // Finaliza o documento
-    doc.end();
-};
-
-// Rota para enviar mensagens via WhatsApp com PDF anexado
 app.post('/api/enviar-mensagem', async (req, res) => {
     const { municipio, coordenador, dados } = req.body;
 
@@ -210,20 +233,19 @@ app.post('/api/enviar-mensagem', async (req, res) => {
 
     const enviarMensagem = () => {
         try {
-            // Pega o primeiro telefone da lista (se necessário, pode ajustar para múltiplos telefones)
             const telefone = dados[0].telefone;
             if (!telefone) {
                 throw new Error('Número de telefone não fornecido.');
             }
 
-            const telefoneCorrigido = formatarTelefone(telefone);
-            const welcomeMessage = `Olá *${coordenador}*! Aqui é o Assistente Virtual.\nIdentificamos pendências no preenchimento do *Diário de Classe*. Por favor, confira o relatório com as informações detalhadas a seguir.`;
+            const telefoneCorrigido = `55${telefone.replace(/\D/g, '')}@c.us`;
+            const welcomeMessage = `Olá *${coordenador}*! Aqui é o Assistente Virtual.\nIdentificamos pendências no preenchimento do *Diário de Classe*. Confira o relatório anexado.`;
 
             client.sendMessage(telefoneCorrigido, welcomeMessage).then(() => {
-                gerarPDF(municipio, coordenador, dados, (pdfBase64) => {
-                    const media = new MessageMedia('application/pdf', pdfBase64, `relatorio_${coordenador}.pdf`);
+                gerarPDF(coordenador, dados, (nomeArquivoPDF) => {
+                    const media = new MessageMedia('application/pdf', fs.readFileSync(nomeArquivoPDF).toString('base64'), `relatorio_${coordenador.replace(/\s+/g, '_')}.pdf`);
                     client.sendMessage(telefoneCorrigido, media).then(() => {
-                        res.json({ success: true, message: 'Mensagem e PDF enviados com sucesso!' });
+                        res.json({ success: true, message: 'Mensagem e arquivos enviados com sucesso!' });
                     }).catch(err => {
                         res.status(500).json({ error: 'Erro ao enviar PDF via WhatsApp.', details: err.message });
                     });
@@ -237,7 +259,7 @@ app.post('/api/enviar-mensagem', async (req, res) => {
         }
     };
 
-    aguardarClientePronto(enviarMensagem);
+    enviarMensagem();
 });
 
 const port = process.env.PORT || 3000;
