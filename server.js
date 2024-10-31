@@ -162,10 +162,11 @@ const gerarPDF = async (coordenador, dados, callback) => {
     });
 };
 
+// Função para enviar mensagens para coordenadores
 const enviarParaCoordenador = (coordenador, dados) => {
     if (!coordenador || !coordenador.telefone) {
         console.error(`Telefone não encontrado para o coordenador: ${coordenador ? coordenador.coordenador : 'desconhecido'}`);
-        return;
+        return; // Pula o envio para coordenadores sem telefone
     }
 
     const telefone = `55${coordenador.telefone.replace(/\D/g, '')}@c.us`;
@@ -191,9 +192,11 @@ app.post('/api/enviar-mensagem', async (req, res) => {
         return res.status(500).json({ error: 'WhatsApp não está conectado' });
     }
 
+    // Filtra dados para incluir apenas coordenadores com telefone válido
     const dadosFiltrados = dados.filter(dado =>
         (!coordenador || dado.coordenador === coordenador) &&
-        (!escola || dado.escola === escola)
+        (!escola || dado.escola === escola) &&
+        dado.telefone // Filtra apenas coordenadores com telefone definido
     );
 
     if (!coordenador) {
@@ -208,6 +211,7 @@ app.post('/api/enviar-mensagem', async (req, res) => {
 
     res.json({ success: true, message: 'Mensagens enviadas com sucesso!' });
 });
+
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

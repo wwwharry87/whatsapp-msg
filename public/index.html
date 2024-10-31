@@ -267,7 +267,7 @@
 
             <div class="dropdown-group">
                 <label for="municipio">Município:</label>
-                <select id="municipio" onchange="carregarDados()">
+                <select id="municipio" onchange="trocarMunicipio()">
                     <option value="">Selecione um município</option>
                 </select>
             </div>
@@ -356,42 +356,62 @@
                 .catch(error => console.error('Erro ao carregar municípios:', error));
         }
 
-        function carregarDados() {
+        function trocarMunicipio() {
             const municipioSelecionado = document.getElementById('municipio').value;
-            if (!municipioSelecionado) return;
+            if (municipioSelecionado) {
+                carregarDados(municipioSelecionado); // Carrega novos dados do município
+            } else {
+                limparDados(); // Limpa os dados se o município não estiver selecionado
+            }
+        }
 
-            fetch(`/api/dados?municipio=${municipioSelecionado}`)
+        function carregarDados(municipio) {
+            fetch(`/api/dados?municipio=${municipio}`)
                 .then(response => response.json())
                 .then(data => {
                     dadosCompletos = data.data;
 
-                    const escolasUnicas = [...new Set(dadosCompletos.map(item => item.escola))];
-                    const selectEscola = document.getElementById('escola');
-                    selectEscola.innerHTML = '<option value="">Todas as Escolas</option>';
-                    escolasUnicas.forEach(escola => {
-                        if (escola) {
-                            const option = document.createElement('option');
-                            option.value = escola;
-                            option.textContent = escola;
-                            selectEscola.appendChild(option);
-                        }
-                    });
-
-                    const coordenadoresUnicos = [...new Set(dadosCompletos.map(item => item.coordenador))];
-                    const selectCoordenador = document.getElementById('coordenador');
-                    selectCoordenador.innerHTML = '<option value="">Todos os Coordenadores</option>';
-                    coordenadoresUnicos.forEach(coordenador => {
-                        if (coordenador) {
-                            const option = document.createElement('option');
-                            option.value = coordenador;
-                            option.textContent = coordenador;
-                            selectCoordenador.appendChild(option);
-                        }
-                    });
-
+                    // Atualiza as opções de escola e coordenador com base nos novos dados
+                    atualizarSelectEscola();
+                    atualizarSelectCoordenador();
                     listarDados(dadosCompletos);
                 })
                 .catch(error => console.error('Erro ao carregar dados:', error));
+        }
+
+        function atualizarSelectEscola() {
+            const escolasUnicas = [...new Set(dadosCompletos.map(item => item.escola))];
+            const selectEscola = document.getElementById('escola');
+            selectEscola.innerHTML = '<option value="">Todas as Escolas</option>';
+            escolasUnicas.forEach(escola => {
+                if (escola) {
+                    const option = document.createElement('option');
+                    option.value = escola;
+                    option.textContent = escola;
+                    selectEscola.appendChild(option);
+                }
+            });
+        }
+
+        function atualizarSelectCoordenador() {
+            const coordenadoresUnicos = [...new Set(dadosCompletos.map(item => item.coordenador))];
+            const selectCoordenador = document.getElementById('coordenador');
+            selectCoordenador.innerHTML = '<option value="">Todos os Coordenadores</option>';
+            coordenadoresUnicos.forEach(coordenador => {
+                if (coordenador) {
+                    const option = document.createElement('option');
+                    option.value = coordenador;
+                    option.textContent = coordenador;
+                    selectCoordenador.appendChild(option);
+                }
+            });
+        }
+
+        function limparDados() {
+            dadosCompletos = []; // Limpa o cache de dados
+            listarDados(dadosCompletos); // Atualiza a exibição com dados vazios
+            document.getElementById('escola').innerHTML = '<option value="">Todas as Escolas</option>';
+            document.getElementById('coordenador').innerHTML = '<option value="">Todos os Coordenadores</option>';
         }
 
         function listarDados(dados) {

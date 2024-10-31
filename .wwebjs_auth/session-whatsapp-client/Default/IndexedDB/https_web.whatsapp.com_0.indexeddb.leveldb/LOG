@@ -1,51 +1,23 @@
-2024/10/30-23:12:10.954 8b03 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2024/10/30-23:12:10.954 8b03 Recovering log #734
-2024/10/30-23:12:11.047 8b03 Reusing old log /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000734.log 
-2024/10/30-23:12:12.479 8603 Level-0 table #743: started
-2024/10/30-23:12:12.500 8603 Level-0 table #743: 1229938 bytes OK
-2024/10/30-23:12:12.510 8603 Delete type=0 #734
-2024/10/30-23:12:13.152 8603 Level-0 table #745: started
-2024/10/30-23:12:13.156 8603 Level-0 table #745: 8100 bytes OK
-2024/10/30-23:12:13.166 8603 Delete type=0 #742
-2024/10/30-23:12:13.167 8603 Manual compaction at level-0 from '\x00s\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00t\x00\x00\x00' @ 0 : 0; will stop at '\x00s\x00\x00\x05' @ 2016295 : 1
-2024/10/30-23:12:13.167 8603 Compacting 1@0 + 1@1 files
-2024/10/30-23:12:13.194 8603 Generated table #746@0: 28958 keys, 573279 bytes
-2024/10/30-23:12:13.194 8603 Compacted 1@0 + 1@1 files => 573279 bytes
-2024/10/30-23:12:13.202 8603 compacted to: files[ 0 1 5 0 0 0 0 ]
-2024/10/30-23:12:13.202 8603 Delete type=2 #745
-2024/10/30-23:12:13.203 8603 Manual compaction at level-0 from '\x00s\x00\x00\x05' @ 2016295 : 1 .. '\x00t\x00\x00\x00' @ 0 : 0; will stop at (end)
-2024/10/30-23:12:13.237 f903 Compacting 1@1 + 5@2 files
-2024/10/30-23:12:13.293 f903 Generated table #747@1: 87212 keys, 2237122 bytes
-2024/10/30-23:12:13.337 f903 Generated table #748@1: 45852 keys, 2223382 bytes
-2024/10/30-23:12:13.373 f903 Generated table #749@1: 32562 keys, 2188792 bytes
-2024/10/30-23:12:13.392 f903 Generated table #750@1: 10486 keys, 2126423 bytes
-2024/10/30-23:12:13.466 f903 Generated table #751@1: 121886 keys, 2281376 bytes
-2024/10/30-23:12:13.475 f903 Generated table #752@1: 8477 keys, 160278 bytes
-2024/10/30-23:12:13.475 f903 Compacted 1@1 + 5@2 files => 11217373 bytes
-2024/10/30-23:12:13.481 f903 compacted to: files[ 0 0 6 0 0 0 0 ]
-2024/10/30-23:12:13.481 f903 Delete type=2 #738
-2024/10/30-23:12:13.481 f903 Delete type=2 #739
-2024/10/30-23:12:13.481 f903 Delete type=2 #746
-2024/10/30-23:12:13.481 f903 Delete type=2 #740
-2024/10/30-23:12:13.481 f903 Delete type=2 #743
-2024/10/30-23:12:13.481 f903 Delete type=2 #737
-2024/10/30-23:12:13.481 f903 Delete type=2 #736
-2024/10/30-23:27:51.669 16213 Level-0 table #754: started
-2024/10/30-23:27:51.687 16213 Level-0 table #754: 1121998 bytes OK
-2024/10/30-23:27:51.697 16213 Delete type=0 #744
-2024/10/30-23:27:51.702 1242f Compacting 1@1 + 6@2 files
-2024/10/30-23:27:51.763 1242f Generated table #755@1: 87399 keys, 2237573 bytes
-2024/10/30-23:27:51.803 1242f Generated table #756@1: 47449 keys, 2227463 bytes
-2024/10/30-23:27:51.837 1242f Generated table #757@1: 30962 keys, 2185690 bytes
-2024/10/30-23:27:51.856 1242f Generated table #758@1: 5560 keys, 2120133 bytes
-2024/10/30-23:27:51.924 1242f Generated table #759@1: 116813 keys, 2272522 bytes
-2024/10/30-23:27:51.946 1242f Generated table #760@1: 33229 keys, 626968 bytes
-2024/10/30-23:27:51.946 1242f Compacted 1@1 + 6@2 files => 11670349 bytes
-2024/10/30-23:27:51.954 1242f compacted to: files[ 0 0 6 0 0 0 0 ]
-2024/10/30-23:27:51.954 1242f Delete type=2 #749
-2024/10/30-23:27:51.954 1242f Delete type=2 #748
-2024/10/30-23:27:51.954 1242f Delete type=2 #752
-2024/10/30-23:27:51.954 1242f Delete type=2 #747
-2024/10/30-23:27:51.954 1242f Delete type=2 #751
-2024/10/30-23:27:51.954 1242f Delete type=2 #750
-2024/10/30-23:27:51.954 1242f Delete type=2 #754
+2024/10/31-00:13:33.935 8603 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2024/10/31-00:13:33.936 8603 Recovering log #779
+2024/10/31-00:13:34.016 8603 Reusing old log /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000779.log 
+2024/10/31-00:13:35.955 1f003 Level-0 table #789: started
+2024/10/31-00:13:35.970 1f003 Level-0 table #789: 855742 bytes OK
+2024/10/31-00:13:35.978 1f003 Delete type=0 #779
+2024/10/31-00:13:35.980 1f003 Manual compaction at level-0 from '\x00v\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00w\x00\x00\x00' @ 0 : 0; will stop at (end)
+2024/10/31-00:13:36.048 16403 Compacting 1@1 + 6@2 files
+2024/10/31-00:13:36.123 16403 Generated table #790@1: 87339 keys, 2235674 bytes
+2024/10/31-00:13:36.180 16403 Generated table #791@1: 48998 keys, 2233925 bytes
+2024/10/31-00:13:36.218 16403 Generated table #792@1: 28032 keys, 2184328 bytes
+2024/10/31-00:13:36.239 16403 Generated table #793@1: 9665 keys, 2131832 bytes
+2024/10/31-00:13:36.312 16403 Generated table #794@1: 91976 keys, 2237561 bytes
+2024/10/31-00:13:36.372 16403 Generated table #795@1: 89507 keys, 1731977 bytes
+2024/10/31-00:13:36.372 16403 Compacted 1@1 + 6@2 files => 12755297 bytes
+2024/10/31-00:13:36.380 16403 compacted to: files[ 0 0 6 0 0 0 0 ]
+2024/10/31-00:13:36.380 16403 Delete type=2 #789
+2024/10/31-00:13:36.380 16403 Delete type=2 #785
+2024/10/31-00:13:36.380 16403 Delete type=2 #784
+2024/10/31-00:13:36.380 16403 Delete type=2 #786
+2024/10/31-00:13:36.380 16403 Delete type=2 #783
+2024/10/31-00:13:36.380 16403 Delete type=2 #782
+2024/10/31-00:13:36.380 16403 Delete type=2 #781
