@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoordInforma</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon"> <!-- Referência ao favicon .ico -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
 
@@ -23,21 +24,30 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Espaço entre a logo e o título */
+            margin-bottom: 5px;
+        }
+
+        .header img {
+            height: 60px; /* Aumentei o tamanho da logo */
+            width: auto;
+        }
+
         h1 {
             font-weight: 600;
             font-size: 2.2em;
             color: #28a745;
-            margin-bottom: 5px;
-            display: inline-block;
-            margin-right: 10px;
+            margin: 0;
         }
 
         h2 {
             font-size: 1em;
             color: #666;
             font-weight: 400;
-            display: inline-block;
-            vertical-align: bottom;
+            margin-top: 5px;
         }
 
         .divider {
@@ -171,10 +181,6 @@
             pointer-events: none;
         }
 
-        .notification .emoji {
-            font-size: 1.5em;
-        }
-
         .notification.show {
             opacity: 1;
             transform: translateY(0);
@@ -256,7 +262,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>CoordInforma</h1>
+        <div class="header">
+            <img src="logo.png" alt="Logo"> <!-- Certifique-se de que sua logo não tenha fundo e aumentei o tamanho -->
+            <h1>CoordInforma</h1>
+        </div>
         <h2>- Mantendo os Coordenadores Sempre Atualizados</h2>
         <div class="divider"></div>
 
@@ -477,7 +486,7 @@
             const notification = document.getElementById('notification');
             notification.classList.add('show'); // Exibe a notificação
 
-            // Oculta a notificação após 3 segundos
+            // Oculta a notificação após 5 segundos
             setTimeout(() => {
                 notification.classList.remove('show');
             }, 5000);
