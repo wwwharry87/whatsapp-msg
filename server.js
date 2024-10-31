@@ -3,16 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 const axios = require('axios');
-const ExcelJS = require('exceljs');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
-const iconv = require('iconv-lite');  // Garantir codificação UTF-8
 const pdfMake = require('pdfmake/build/pdfmake');
 const pdfFonts = require('pdfmake/build/vfs_fonts');
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 const app = express();
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -95,15 +92,15 @@ app.get('/api/dados', async (req, res) => {
     }
 });
 
-// Função para carregar os dados do CSV e garantir a codificação UTF-8
 const carregarDadosPorMunicipio = async (url) => {
     const response = await axios.get(url, { responseType: 'arraybuffer' });
-    const csvString = iconv.decode(Buffer.from(response.data), 'utf-8');  // Garantir codificação UTF-8
     const data = [];
+    const csvString = response.data.toString('utf-8');
     csvString.split('\n').forEach((line, index) => {
         if (index === 0) return;  // Ignorar cabeçalho do CSV
         const columns = line.split(',');
         data.push({
+            escola: columns[0],
             turma: columns[2],
             professor: columns[3],
             coordenador: columns[4],
@@ -116,75 +113,11 @@ const carregarDadosPorMunicipio = async (url) => {
     return data;
 };
 
-// Função para gerar Excel
-const gerarExcel = async (coordenador, dados) => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Relatório de Pendências');
-
-    worksheet.columns = [
-        { header: 'Turma', key: 'turma', width: 15 },
-        { header: 'Professor', key: 'professor', width: 30 },
-        { header: 'Disciplina', key: 'disciplina', width: 20 },
-        { header: 'Data', key: 'data', width: 25 },
-        { header: 'Falta', key: 'falta', width: 30 }
-    ];
-
-    worksheet.getRow(1).eachCell((cell) => {
-        cell.font = { bold: true };
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'D3D3D3' }
-        };
-    });
-
-    dados.forEach((dado, index) => {
-        const row = worksheet.addRow({
-            turma: dado.turma,
-            professor: dado.professor,
-            disciplina: dado.disciplina,
-            data: dado.data,
-            falta: dado.falta
-        });
-
-        if (index % 2 === 0) {
-            row.eachCell((cell) => {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'F5F5F5' }
-                };
-            });
-        }
-
-        row.font = { size: 10 };
-    });
-
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-            cell.alignment = { wrapText: true };
-        });
-    });
-
-    const nomeArquivoExcel = `upload/${coordenador.replace(/\s+/g, '_')}.xlsx`;
-
-    if (!fs.existsSync('upload')) {
-        fs.mkdirSync('upload');
-    }
-
-    await workbook.xlsx.writeFile(nomeArquivoExcel);
-
-    return nomeArquivoExcel;
-};
-
-// Função para gerar PDF com PDFMake
 const gerarPDF = async (coordenador, dados, callback) => {
     const tableBody = [
         [{ text: 'Turma', bold: true }, { text: 'Professor', bold: true }, { text: 'Disciplina', bold: true }, { text: 'Data', bold: true }, { text: 'Falta', bold: true }]
     ];
 
-    // Inserir os dados na tabela
     dados.forEach(dado => {
         tableBody.push([
             dado.turma || '',
@@ -229,45 +162,51 @@ const gerarPDF = async (coordenador, dados, callback) => {
     });
 };
 
+const enviarParaCoordenador = (coordenador, dados) => {
+    if (!coordenador || !coordenador.telefone) {
+        console.error(`Telefone não encontrado para o coordenador: ${coordenador ? coordenador.coordenador : 'desconhecido'}`);
+        return;
+    }
+
+    const telefone = `55${coordenador.telefone.replace(/\D/g, '')}@c.us`;
+    const mensagem = `Olá, ${coordenador.coordenador}. Identificamos pendências no preenchimento do Diário de Classe. Confira o relatório anexado.`;
+
+    gerarPDF(coordenador.coordenador, dados, (nomeArquivoPDF) => {
+        const media = MessageMedia.fromFilePath(nomeArquivoPDF);
+
+        client.sendMessage(telefone, mensagem)
+            .then(() => {
+                client.sendMessage(telefone, media)
+                    .then(() => console.log(`PDF enviado para ${coordenador.coordenador}`))
+                    .catch(err => console.error(`Erro ao enviar PDF para ${coordenador.coordenador}:`, err));
+            })
+            .catch(err => console.error(`Erro ao enviar mensagem para ${coordenador.coordenador}:`, err));
+    });
+};
+
 app.post('/api/enviar-mensagem', async (req, res) => {
-    const { municipio, coordenador, dados } = req.body;
+    const { municipio, coordenador, escola, dados } = req.body;
 
     if (!clientReady) {
         return res.status(500).json({ error: 'WhatsApp não está conectado' });
     }
 
-    const enviarMensagem = () => {
-        try {
-            const telefone = dados[0].telefone;
-            if (!telefone) {
-                throw new Error('Número de telefone não fornecido.');
-            }
+    const dadosFiltrados = dados.filter(dado =>
+        (!coordenador || dado.coordenador === coordenador) &&
+        (!escola || dado.escola === escola)
+    );
 
-            const telefoneCorrigido = `55${telefone.replace(/\D/g, '')}@c.us`;
-            const welcomeMessage = `Olá *${coordenador}*! Aqui é o Assistente Virtual.\nIdentificamos pendências no preenchimento do *Diário de Classe*. Confira o relatório anexado.`;
+    if (!coordenador) {
+        const coordenadoresUnicos = [...new Set(dadosFiltrados.map(dado => dado.coordenador))];
+        coordenadoresUnicos.forEach(coord => {
+            const dadosDoCoordenador = dadosFiltrados.filter(d => d.coordenador === coord);
+            enviarParaCoordenador(dadosDoCoordenador[0], dadosDoCoordenador);
+        });
+    } else {
+        enviarParaCoordenador(dadosFiltrados[0], dadosFiltrados);
+    }
 
-            client.sendMessage(telefoneCorrigido, welcomeMessage).then(() => {
-                gerarPDF(coordenador, dados, (nomeArquivoPDF) => {
-                    const media = new MessageMedia('application/pdf', fs.readFileSync(nomeArquivoPDF).toString('base64'), `relatorio_${coordenador.replace(/\s+/g, '_')}.pdf`);
-                    client.sendMessage(telefoneCorrigido, media).then(() => {
-                        res.json({ success: true, message: 'Mensagem e arquivos enviados com sucesso!' });
-                    }).catch(err => {
-                        console.error("Erro ao enviar PDF via WhatsApp:", err);
-                        res.status(500).json({ error: 'Erro ao enviar PDF via WhatsApp.', details: err.message });
-                    });
-                });
-            }).catch(err => {
-                console.error("Erro ao enviar mensagem inicial via WhatsApp:", err);
-                res.status(500).json({ error: 'Erro ao enviar mensagem inicial via WhatsApp.', details: err.message });
-            });
-
-        } catch (error) {
-            console.error("Erro ao processar envio de mensagem:", error);
-            res.status(500).json({ error: 'Erro ao processar envio de mensagem.', details: error.message });
-        }
-    };
-
-    enviarMensagem();
+    res.json({ success: true, message: 'Mensagens enviadas com sucesso!' });
 });
 
 const port = process.env.PORT || 3000;

@@ -1,15 +1,6 @@
-2024/10/29-17:51:28.519 f803 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/MANIFEST-000001
-2024/10/29-17:51:28.521 f803 Recovering log #27
-2024/10/29-17:51:28.521 f803 Reusing old log /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/000027.log 
-2024/10/29-18:21:02.386 16f23 Level-0 table #30: started
-2024/10/29-18:21:02.397 16f23 Level-0 table #30: 14640 bytes OK
-2024/10/29-18:21:02.407 16f23 Delete type=0 #27
-2024/10/29-18:21:02.411 16f23 Compacting 4@0 + 1@1 files
-2024/10/29-18:21:02.422 16f23 Generated table #31@0: 251 keys, 6028 bytes
-2024/10/29-18:21:02.423 16f23 Compacted 4@0 + 1@1 files => 6028 bytes
-2024/10/29-18:21:02.429 16f23 compacted to: files[ 0 1 1 0 0 0 0 ]
-2024/10/29-18:21:02.430 16f23 Delete type=2 #21
-2024/10/29-18:21:02.430 16f23 Delete type=2 #26
-2024/10/29-18:21:02.430 16f23 Delete type=2 #18
-2024/10/29-18:21:02.430 16f23 Delete type=2 #24
-2024/10/29-18:21:02.430 16f23 Delete type=2 #30
+2024/10/30-21:28:15.789 a103 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/MANIFEST-000001
+2024/10/30-21:28:15.790 a103 Recovering log #43
+2024/10/30-21:28:15.790 a103 Reusing old log /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/000043.log 
+2024/10/30-22:11:42.459 16417 Level-0 table #47: started
+2024/10/30-22:11:42.467 16417 Level-0 table #47: 14597 bytes OK
+2024/10/30-22:11:42.478 16417 Delete type=0 #43
