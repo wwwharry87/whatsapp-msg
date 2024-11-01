@@ -8,7 +8,7 @@ const qrcode = require('qrcode');
 const pdfMake = require('pdfmake/build/pdfmake');
 const pdfFonts = require('pdfmake/build/vfs_fonts');
 const session = require('express-session');
-const bcrypt = require('bcryptjs'); // Usando bcryptjs
+const bcrypt = require('bcryptjs');
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
@@ -24,44 +24,34 @@ app.use(session({
     cookie: { maxAge: 60000 } // Sessão expira em 1 minuto (60.000 ms)
 }));
 
-// Middleware para verificar se a sessão está autenticada
-app.use((req, res, next) => {
-    // Permite acesso a arquivos estáticos como logo.png e outros arquivos na pasta public
-    if (!req.session.authenticated && !req.path.startsWith('/login.html') && !req.path.startsWith('/logo.png')) {
-        res.redirect('/login.html');
-    } else {
-        next();
-    }
-});
-
-// Rota principal para redirecionar automaticamente para a página de login
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
 // Middleware para servir arquivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware para redirecionar o domínio da Render para o domínio personalizado
+// Middleware para verificar se a sessão está autenticada
 app.use((req, res, next) => {
-    if (req.hostname === 'whatsapp-msg-n4wh.onrender.com') {
-        return res.redirect(301, `https://www.bwsolucoesinteligentes.com${req.originalUrl}`);
+    if (!req.session.authenticated && !req.path.startsWith('/index.html') && !req.path.startsWith('/logo.png') && !req.path.startsWith('/favicon.ico') && req.path !== '/login') {
+        return res.redirect('/index.html');
     }
     next();
 });
 
+// Rota principal para redirecionar automaticamente para a página de login
+app.get('/', (req, res) => {
+    if (req.session.authenticated) {
+        return res.redirect('/home.html'); // Se autenticado, redireciona para home.html
+    }
+    res.sendFile(path.join(__dirname, 'public', 'index.html')); // Carrega a página de login
+});
+
 // Rota para verificar se a sessão ainda está ativa
 app.get('/api/check-session', (req, res) => {
-    if (req.session.authenticated) {
-        res.json({ authenticated: true });
-    } else {
-        res.json({ authenticated: false });
-    }
+    res.json({ authenticated: req.session.authenticated || false });
 });
 
 // Rota para encerrar a sessão (logout)
 app.get('/api/logout', (req, res) => {
     req.session.destroy(() => {
+        res.clearCookie('connect.sid'); // Limpa o cookie da sessão
         res.sendStatus(200); // Envia uma resposta de sucesso
     });
 });
@@ -117,16 +107,14 @@ iniciarClienteWhatsApp();
 
 // Lista de usuários com senhas hash
 const usuarios = [
-    { username: 'admin', password: bcrypt.hashSync('admin8718', 10) }, // senha: admin8718
-    { username: 'user1', password: bcrypt.hashSync('senha123', 10) },  // senha: senha123
-    { username: 'user2', password: bcrypt.hashSync('senha456', 10) }   // senha: senha456
+    { username: 'admin', password: bcrypt.hashSync('admin8718', 10) },
+    { username: 'user1', password: bcrypt.hashSync('senha123', 10) },
+    { username: 'user2', password: bcrypt.hashSync('senha456', 10) }
 ];
 
 // Rota para autenticar o login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-
-    // Verifica se o usuário existe
     const usuarioValido = usuarios.find(user => user.username === username);
     if (usuarioValido && bcrypt.compareSync(password, usuarioValido.password)) {
         req.session.authenticated = true;
@@ -141,13 +129,13 @@ function verificarAutenticacao(req, res, next) {
     if (req.session.authenticated) {
         next();
     } else {
-        res.redirect('/'); // Redireciona para a página de login
+        res.redirect('/index.html'); // Redireciona para a página de login
     }
 }
 
-// Protege a rota para index.html
-app.get('/index.html', verificarAutenticacao, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Protege a rota para home.html
+app.get('/home.html', verificarAutenticacao, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
 // Rota para verificar o status do WhatsApp

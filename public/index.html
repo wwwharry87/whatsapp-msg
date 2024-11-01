@@ -3,592 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoordInforma</title>
+    <title>Login - CoordInforma</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             background-color: #f4f8fb;
         }
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
+        .login-container {
             background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            position: relative;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
         }
 
-        .header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 5px;
+        .login-header {
+            margin-bottom: 30px;
         }
 
-        .header img {
-            height: 60px;
-            width: auto;
+        .logo {
+            width: 150px;
+            margin-bottom: 20px;
         }
 
-        h1 {
-            font-weight: 600;
-            font-size: 2.2em;
+        .login-header h1 {
+            font-size: 1.8em;
             color: #28a745;
-            margin: 0;
         }
 
-        h2 {
-            font-size: 1em;
-            color: #666;
-            font-weight: 400;
-            margin-top: 5px;
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
         }
 
-        .divider {
-            width: 100%;
-            height: 3px;
-            background-color: #28a745;
-            border-radius: 2px;
-            margin: 10px 0 30px 0;
-        }
-
-        .status-indicator {
-            font-size: 1.2em;
-            color: #ff0000;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-        }
-
-        .connect-btn {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            display: none;
-        }
-
-        .connect-btn:hover {
-            background-color: #0056b3;
-        }
-
-        .dropdown-group {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            width: 100%;
-        }
-
-        .dropdown-group label {
+        .input-group label {
+            display: block;
             font-weight: 500;
             color: #555;
             margin-bottom: 5px;
         }
 
-        select {
+        .input-group input {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             border-radius: 5px;
             border: 1px solid #ddd;
             font-size: 14px;
             background-color: #f8f8f8;
             color: #333;
-            transition: all 0.3s ease;
         }
 
-        select:focus {
+        .input-group input:focus {
             border-color: #28a745;
             outline: none;
             background-color: #ffffff;
         }
 
-        .send-bar {
-            display: flex;
-            justify-content: flex-start;
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        button {
+        .login-btn {
             background-color: #28a745;
             color: white;
-            padding: 10px;
-            width: 100%;
             border: none;
+            width: 100%;
+            padding: 12px;
             border-radius: 5px;
+            font-size: 16px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            font-weight: 500;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease;
-            justify-content: center;
-            gap: 10px;
+            transition: background-color 0.3s;
         }
 
-        button:hover {
+        .login-btn:hover {
             background-color: #218838;
         }
 
-        .whatsapp-icon {
-            font-size: 1.2em;
-        }
-
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-            margin-top: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .error-message {
+            color: #ff0000;
             font-size: 14px;
             text-align: center;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
-
-        th {
-            background-color: #f4f4f4;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #28a745;
-            color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            opacity: 0;
-            transform: translateY(20px);
-            pointer-events: none;
-        }
-
-        .notification.show {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: all;
-        }
-
-        .modal, .session-expired-modal {
+            margin-top: 10px;
             display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
-
-        .modal.show, .session-expired-modal.show {
-            display: block;
-        }
-
-        .modal-header {
-            font-weight: 600;
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-
-        .modal-content {
-            text-align: center;
-        }
-
-        .modal-close {
-            background-color: #f44336;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .modal-close:hover {
-            background-color: #d32f2f;
-        }
-
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-        }
-
-        .overlay.show {
-            display: block;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-
-        .modal-buttons button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .stay-logged-in-btn {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .logout-btn {
-            background-color: #f44336;
-            color: white;
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <img src="logo.png" alt="Logo">
+    <div class="login-container">
+        <div class="login-header">
+            <img src="logo.png" alt="Logo" class="logo">
             <h1>CoordInforma</h1>
         </div>
-        <h2>- Mantendo os Coordenadores Sempre Atualizados</h2>
-        <div class="divider"></div>
-
-        <span id="whatsapp-status" class="status-indicator">
-            <i class="fas fa-circle"></i>
-        </span>
-        <button id="connect-btn" class="connect-btn" onclick="abrirModal()">Conectar WhatsApp</button>
-
-        <div class="dropdown-group">
-            <label for="municipio">Município:</label>
-            <select id="municipio" onchange="trocarMunicipio()" disabled>
-                <option value="">Selecione um município</option>
-            </select>
+        <div class="input-group">
+            <label for="username">Usuário</label>
+            <input type="text" id="username" placeholder="Digite seu usuário">
         </div>
-
-        <div class="dropdown-group">
-            <label for="escola">Escola:</label>
-            <select id="escola" onchange="filtrarPorEscola()" disabled>
-                <option value="">Todas as Escolas</option>
-            </select>
+        <div class="input-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" placeholder="Digite sua senha">
         </div>
-
-        <div class="dropdown-group">
-            <label for="coordenador">Coordenador:</label>
-            <select id="coordenador" onchange="filtrarPorCoordenador()" disabled>
-                <option value="">Todos os Coordenadores</option>
-            </select>
-        </div>
-
-        <div class="send-bar">
-            <button id="enviar-btn" onclick="enviarDadosParaBackend()" disabled>
-                <i class="fab fa-whatsapp whatsapp-icon"></i> Enviar
-            </button>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Turma</th>
-                        <th>Professor</th>
-                        <th>Disciplina</th>
-                        <th>Data</th>
-                        <th>Falta</th>
-                    </tr>
-                </thead>
-                <tbody id="dados-list"></tbody>
-            </table>
-        </div>
-
-        <div id="notification" class="notification">
-            <span class="emoji">😊</span> Mensagem e PDF enviados com sucesso para todos os coordenadores!
-        </div>
-
-        <div id="modal" class="modal">
-            <div class="modal-header">Conectar WhatsApp</div>
-            <div class="modal-content">
-                <p>Escaneie o QR Code para conectar ao WhatsApp.</p>
-                <div id="qr-code"></div>
-                <button class="modal-close" onclick="fecharModal()">Fechar</button>
-            </div>
-        </div>
-        <div id="overlay" class="overlay"></div>
-
-        <!-- Modal de Sessão Expirada -->
-        <div id="session-expired-modal" class="session-expired-modal">
-            <div class="modal-content">
-                <h2>Atenção!</h2>
-                <p>Você está inativo há algum tempo. Sua sessão expirará em <span id="timer">3:00</span> minutos.</p>
-                <div class="modal-buttons">
-                    <button class="stay-logged-in-btn" onclick="permanecerLogado()">Permanecer</button>
-                    <button class="logout-btn" onclick="sairPagina()">Sair</button>
-                </div>
-            </div>
-        </div>
-
+        <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+        <div class="error-message" id="error-message">Usuário ou senha inválidos.</div>
     </div>
 
     <script>
-        let clientReady = false;
-        let dadosCompletos = [];
-        let sessionExpired = false;
-        let inactivityTimeout;
-        let countdownInterval;
-        let countdownTime = 180; // 3 minutos em segundos
+        function fazerLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
 
-        window.onload = function () {
-            verificarStatusWhatsapp();
-            carregarMunicipios();
-            resetInactivityTimer(); // Inicializa o timer de inatividade
-        };
-
-        function carregarMunicipios() {
-            fetch('/api/municipios')
-                .then(response => response.json())
-                .then(municipios => {
-                    const selectMunicipio = document.getElementById('municipio');
-                    municipios.forEach(municipio => {
-                        const option = document.createElement('option');
-                        option.value = municipio;
-                        option.textContent = municipio;
-                        selectMunicipio.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Erro ao carregar municípios:', error));
-        }
-
-        function verificarStatusWhatsapp() {
-            fetch('/api/check-whatsapp')
-                .then(response => response.json())
-                .then(data => {
-                    clientReady = data.connected;
-                    const statusIndicator = document.getElementById('whatsapp-status');
-                    const connectBtn = document.getElementById('connect-btn');
-                    const selects = document.querySelectorAll('select');
-                    const sendBtn = document.getElementById('enviar-btn');
-
-                    statusIndicator.style.color = clientReady ? '#28a745' : '#ff0000';
-                    connectBtn.classList.toggle('hidden', clientReady);
-
-                    if (clientReady) {
-                        selects.forEach(select => select.removeAttribute('disabled'));
-                        sendBtn.removeAttribute('disabled');
-                    } else {
-                        selects.forEach(select => select.setAttribute('disabled', true));
-                        sendBtn.setAttribute('disabled', true);
-                        abrirModal();
-                    }
-                })
-                .catch(error => console.error('Erro ao verificar WhatsApp:', error));
-        }
-
-        function abrirModal() {
-            document.getElementById('modal').classList.add('show');
-            document.getElementById('overlay').classList.add('show');
-            fetch('/api/check-whatsapp')
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.connected && data.qr) {
-                        document.getElementById('qr-code').innerHTML = `<img src="${data.qr}" alt="QR Code">`;
-                    }
-                })
-                .catch(error => console.error('Erro ao carregar QR Code:', error));
-        }
-
-        function fecharModal() {
-            document.getElementById('modal').classList.remove('show');
-            document.getElementById('overlay').classList.remove('show');
-            verificarStatusWhatsapp();
-        }
-
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimeout);
-            if (sessionExpired) return; // Se a sessão já estiver expirada, não reinicie o timer
-
-            inactivityTimeout = setTimeout(() => {
-                mostrarModalSessaoExpirada();
-            }, 60000); // 1 minuto de inatividade
-        }
-
-        function mostrarModalSessaoExpirada() {
-            document.getElementById('session-expired-modal').classList.add('show');
-            iniciarContagemRegressiva();
-        }
-
-        function iniciarContagemRegressiva() {
-            clearInterval(countdownInterval);
-            countdownTime = 180; // Reinicia para 3 minutos
-
-            countdownInterval = setInterval(() => {
-                countdownTime--;
-                const minutes = Math.floor(countdownTime / 60);
-                const seconds = countdownTime % 60;
-                document.getElementById('timer').textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-
-                if (countdownTime <= 0) {
-                    clearInterval(countdownInterval);
-                    sairPagina();
-                }
-            }, 1000);
-        }
-
-        function permanecerLogado() {
-            document.getElementById('session-expired-modal').classList.remove('show');
-            clearInterval(countdownInterval);
-            resetInactivityTimer(); // Reinicia o timer de inatividade
-        }
-
-        function sairPagina() {
-            sessionExpired = true;
-            fetch('/api/logout') // Envia uma requisição para encerrar a sessão
-                .then(() => {
-                    window.location.href = '/'; // Redireciona para a página de login
-                })
-                .catch(() => {
-                    window.location.href = '/'; // Redireciona para a página de login se não puder fechar
-                });
-        }
-
-        function trocarMunicipio() {
-            const municipioSelecionado = document.getElementById('municipio').value;
-            if (municipioSelecionado) {
-                carregarDados(municipioSelecionado);
-            } else {
-                limparDados();
-            }
-        }
-
-        function carregarDados(municipio) {
-            fetch(`/api/dados?municipio=${municipio}`)
-                .then(response => response.json())
-                .then(data => {
-                    dadosCompletos = data.data;
-                    atualizarSelectEscola(dadosCompletos);
-                    atualizarSelectCoordenador(dadosCompletos);
-                    listarDados(dadosCompletos);
-                })
-                .catch(error => console.error('Erro ao carregar dados:', error));
-        }
-
-        function atualizarSelectEscola(dados) {
-            const escolasUnicas = [...new Set(dados.map(item => item.escola))];
-            const selectEscola = document.getElementById('escola');
-            selectEscola.innerHTML = '<option value="">Todas as Escolas</option>';
-            escolasUnicas.forEach(escola => {
-                const option = document.createElement('option');
-                option.value = escola;
-                option.textContent = escola;
-                selectEscola.appendChild(option);
-            });
-        }
-
-        function atualizarSelectCoordenador(dados) {
-            const coordenadoresUnicos = [...new Set(dados.map(item => item.coordenador))];
-            const selectCoordenador = document.getElementById('coordenador');
-            selectCoordenador.innerHTML = '<option value="">Todos os Coordenadores</option>';
-            coordenadoresUnicos.forEach(coordenador => {
-                const option = document.createElement('option');
-                option.value = coordenador;
-                option.textContent = coordenador;
-                selectCoordenador.appendChild(option);
-            });
-        }
-
-        function limparDados() {
-            document.getElementById('dados-list').innerHTML = '';
-            document.getElementById('escola').innerHTML = '<option value="">Todas as Escolas</option>';
-            document.getElementById('coordenador').innerHTML = '<option value="">Todos os Coordenadores</option>';
-        }
-
-        function listarDados(dados) {
-            const lista = document.getElementById('dados-list');
-            lista.innerHTML = '';
-            dados.forEach(item => {
-                const linha = document.createElement('tr');
-                linha.innerHTML = `
-                    <td>${item.turma}</td>
-                    <td>${item.professor}</td>
-                    <td>${item.disciplina}</td>
-                    <td>${item.data}</td>
-                    <td>${item.falta}</td>
-                `;
-                lista.appendChild(linha);
-            });
-        }
-
-        function enviarDadosParaBackend() {
-            const municipio = document.getElementById('municipio').value;
-            const escola = document.getElementById('escola').value;
-            const coordenador = document.getElementById('coordenador').value;
-
-            const body = {
-                municipio: municipio || '',
-                coordenador: coordenador || '',
-                escola: escola || '',
-                dados: dadosCompletos
-            };
-
-            fetch('/api/enviar-mensagem', {
+            // Envia a solicitação de login para o backend
+            fetch('/login', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(body)
+                body: JSON.stringify({ username, password })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    mostrarNotificacao();
+                    // Autenticação bem-sucedida, redireciona para home.html
+                    window.location.href = "/home.html";
                 } else {
-                    alert('Erro ao enviar mensagem.');
+                    // Exibe mensagem de erro
+                    errorMessage.style.display = 'block';
                 }
             })
-            .catch(error => console.error('Erro ao enviar mensagem:', error));
+            .catch(error => console.error('Erro ao fazer login:', error));
         }
-
-        function mostrarNotificacao() {
-            const notification = document.getElementById('notification');
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 5000);
-        }
-
-        // Reinicia o timer de inatividade ao interagir com a página
-        document.addEventListener('mousemove', resetInactivityTimer);
-        document.addEventListener('keydown', resetInactivityTimer);
     </script>
 </body>
 </html>
