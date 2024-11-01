@@ -8,13 +8,13 @@ const qrcode = require('qrcode');
 const pdfMake = require('pdfmake/build/pdfmake');
 const pdfFonts = require('pdfmake/build/vfs_fonts');
 const session = require('express-session');
+const bcrypt = require('bcrypt');
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Configuração de sessão para gerenciamento de login
 app.use(session({
@@ -23,6 +23,14 @@ app.use(session({
     saveUninitialized: true,
     cookie: { secure: false }
 }));
+
+// Rota principal para redirecionar automaticamente para a página de login
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Middleware para servir arquivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware para redirecionar o domínio da Render para o domínio personalizado
 app.use((req, res, next) => {
@@ -81,17 +89,20 @@ function iniciarClienteWhatsApp() {
 
 iniciarClienteWhatsApp();
 
-// Rota para a página de login
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
+// Lista de usuários com senhas hash
+const usuarios = [
+    { username: 'admin', password: bcrypt.hashSync('admin8718', 10) }, // senha: admin8718
+    { username: 'brenda', password: bcrypt.hashSync('08042024', 10) },  // senha: senha123
+    { username: 'evandro', password: bcrypt.hashSync('evandro1234', 10) }   // senha: senha456
+];
 
 // Rota para autenticar o login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    // Simulação de autenticação
-    if (username === 'admin' && password === '1234') {
+    // Verifica se o usuário existe
+    const usuarioValido = usuarios.find(user => user.username === username);
+    if (usuarioValido && bcrypt.compareSync(password, usuarioValido.password)) {
         req.session.authenticated = true;
         res.json({ success: true });
     } else {
@@ -104,7 +115,7 @@ function verificarAutenticacao(req, res, next) {
     if (req.session.authenticated) {
         next();
     } else {
-        res.redirect('/');
+        res.redirect('/'); // Redireciona para a página de login
     }
 }
 
