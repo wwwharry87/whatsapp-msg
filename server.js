@@ -26,10 +26,12 @@ app.use(session({
 
 // Middleware para verificar se a sessão está autenticada
 app.use((req, res, next) => {
-    if (!req.session.authenticated && req.path !== '/' && req.path !== '/login') {
-        return res.redirect('/'); // Redireciona para a página de login se a sessão não estiver autenticada
+    // Permite acesso a arquivos estáticos como logo.png e outros arquivos na pasta public
+    if (!req.session.authenticated && !req.path.startsWith('/login.html') && !req.path.startsWith('/logo.png')) {
+        res.redirect('/login.html');
+    } else {
+        next();
     }
-    next();
 });
 
 // Rota principal para redirecionar automaticamente para a página de login
