@@ -8,7 +8,7 @@ const qrcode = require('qrcode');
 const pdfMake = require('pdfmake/build/pdfmake');
 const pdfFonts = require('pdfmake/build/vfs_fonts');
 const session = require('express-session');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // Usando bcryptjs
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
@@ -16,13 +16,21 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Configuração de sessão para gerenciamento de login
+// Configuração de sessão para expirar após 1 minuto de inatividade
 app.use(session({
     secret: 'secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }
+    cookie: { maxAge: 60000 } // Sessão expira em 1 minuto (60.000 ms)
 }));
+
+// Middleware para verificar se a sessão está autenticada
+app.use((req, res, next) => {
+    if (!req.session.authenticated && req.path !== '/' && req.path !== '/login') {
+        return res.redirect('/'); // Redireciona para a página de login se a sessão não estiver autenticada
+    }
+    next();
+});
 
 // Rota principal para redirecionar automaticamente para a página de login
 app.get('/', (req, res) => {
@@ -38,6 +46,22 @@ app.use((req, res, next) => {
         return res.redirect(301, `https://www.bwsolucoesinteligentes.com${req.originalUrl}`);
     }
     next();
+});
+
+// Rota para verificar se a sessão ainda está ativa
+app.get('/api/check-session', (req, res) => {
+    if (req.session.authenticated) {
+        res.json({ authenticated: true });
+    } else {
+        res.json({ authenticated: false });
+    }
+});
+
+// Rota para encerrar a sessão (logout)
+app.get('/api/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.sendStatus(200); // Envia uma resposta de sucesso
+    });
 });
 
 let municipiosData = [];
@@ -92,8 +116,8 @@ iniciarClienteWhatsApp();
 // Lista de usuários com senhas hash
 const usuarios = [
     { username: 'admin', password: bcrypt.hashSync('admin8718', 10) }, // senha: admin8718
-    { username: 'brenda', password: bcrypt.hashSync('08042024', 10) },  // senha: senha123
-    { username: 'evandro', password: bcrypt.hashSync('evandro1234', 10) }   // senha: senha456
+    { username: 'user1', password: bcrypt.hashSync('senha123', 10) },  // senha: senha123
+    { username: 'user2', password: bcrypt.hashSync('senha456', 10) }   // senha: senha456
 ];
 
 // Rota para autenticar o login
