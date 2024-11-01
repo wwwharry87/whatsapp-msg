@@ -14,6 +14,14 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Middleware para redirecionar o domínio da Render para o domínio personalizado
+app.use((req, res, next) => {
+    if (req.hostname === 'whatsapp-msg-n4wh.onrender.com') {
+        return res.redirect(301, `https://www.bwsolucoesinteligentes.com${req.originalUrl}`);
+    }
+    next();
+});
+
 let municipiosData = [];
 let qrCodeData = null;
 let clientReady = false;
