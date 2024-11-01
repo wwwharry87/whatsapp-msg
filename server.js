@@ -8,7 +8,7 @@ const qrcode = require('qrcode');
 const pdfMake = require('pdfmake/build/pdfmake');
 const pdfFonts = require('pdfmake/build/vfs_fonts');
 const session = require('express-session');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
