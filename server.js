@@ -7,12 +7,22 @@ const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const pdfMake = require('pdfmake/build/pdfmake');
 const pdfFonts = require('pdfmake/build/vfs_fonts');
+const session = require('express-session');
+
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Configuração de sessão para gerenciamento de login
+app.use(session({
+    secret: 'secret-key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }
+}));
 
 // Middleware para redirecionar o domínio da Render para o domínio personalizado
 app.use((req, res, next) => {
@@ -26,6 +36,7 @@ let municipiosData = [];
 let qrCodeData = null;
 let clientReady = false;
 
+// Carregar dados dos municípios
 fs.createReadStream('municipios.txt')
     .pipe(csv({ separator: ';', headers: ['municipio', 'url'] }))
     .on('data', (row) => {
@@ -35,6 +46,7 @@ fs.createReadStream('municipios.txt')
         console.log('Arquivo de municípios carregado com sucesso.');
     });
 
+// Configuração do cliente WhatsApp
 let client = new Client({
     authStrategy: new LocalAuth({ clientId: 'whatsapp-client' }),
 });
@@ -69,7 +81,40 @@ function iniciarClienteWhatsApp() {
 
 iniciarClienteWhatsApp();
 
-app.get('/api/check-whatsapp', (req, res) => {
+// Rota para a página de login
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Rota para autenticar o login
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+
+    // Simulação de autenticação
+    if (username === 'admin' && password === '1234') {
+        req.session.authenticated = true;
+        res.json({ success: true });
+    } else {
+        res.json({ success: false });
+    }
+});
+
+// Middleware para proteger as rotas após o login
+function verificarAutenticacao(req, res, next) {
+    if (req.session.authenticated) {
+        next();
+    } else {
+        res.redirect('/');
+    }
+}
+
+// Protege a rota para index.html
+app.get('/index.html', verificarAutenticacao, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Rota para verificar o status do WhatsApp
+app.get('/api/check-whatsapp', verificarAutenticacao, (req, res) => {
     if (clientReady) {
         res.json({ connected: true });
     } else if (qrCodeData) {
@@ -79,19 +124,20 @@ app.get('/api/check-whatsapp', (req, res) => {
     }
 });
 
-app.get('/api/municipios', (req, res) => {
+// Rota para obter os municípios
+app.get('/api/municipios', verificarAutenticacao, (req, res) => {
     const municipios = municipiosData.map(row => row.municipio);
     res.json([...new Set(municipios)]);
 });
 
-app.get('/api/dados', async (req, res) => {
+// Rota para obter os dados de um município específico
+app.get('/api/dados', verificarAutenticacao, async (req, res) => {
     const { municipio } = req.query;
-
     const municipioEncontrado = municipiosData.find(row => row.municipio === municipio);
+
     if (!municipioEncontrado) return res.status(404).json({ error: 'Município não encontrado' });
 
     const url = municipioEncontrado.url;
-
     try {
         const dados = await carregarDadosPorMunicipio(url);
         res.json({ data: dados });
@@ -100,12 +146,13 @@ app.get('/api/dados', async (req, res) => {
     }
 });
 
+// Função para carregar dados do município
 const carregarDadosPorMunicipio = async (url) => {
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     const data = [];
     const csvString = response.data.toString('utf-8');
     csvString.split('\n').forEach((line, index) => {
-        if (index === 0) return; // Ignorar cabeçalho do CSV
+        if (index === 0) return;
         const columns = line.split(',');
         data.push({
             escola: columns[0],
@@ -121,6 +168,7 @@ const carregarDadosPorMunicipio = async (url) => {
     return data;
 };
 
+// Função para gerar o PDF
 const gerarPDF = async (coordenador, dados, callback) => {
     const tableBody = [
         [{ text: 'Turma', bold: true }, { text: 'Professor', bold: true }, { text: 'Disciplina', bold: true }, { text: 'Data', bold: true }, { text: 'Falta', bold: true }]
@@ -152,12 +200,6 @@ const gerarPDF = async (coordenador, dados, callback) => {
                 fontSize: 14,
                 bold: true,
                 margin: [0, 20, 0, 10]
-            },
-            tableHeader: {
-                bold: true,
-                fontSize: 12,
-                color: 'black',
-                alignment: 'center'
             }
         }
     };
@@ -172,12 +214,20 @@ const gerarPDF = async (coordenador, dados, callback) => {
 
 // Função para enviar mensagens para coordenadores
 const enviarParaCoordenador = (coordenador, dados) => {
-    if (!coordenador || !coordenador.telefone) {
-        console.error(`Telefone não encontrado para o coordenador: ${coordenador ? coordenador.coordenador : 'desconhecido'}`);
-        return; // Pula o envio para coordenadores sem telefone
+    if (!coordenador) {
+        console.error('Coordenador não definido.');
+        return;
     }
 
-    const telefone = `55${coordenador.telefone.replace(/\D/g, '')}@c.us`;
+    const telefone = coordenador.telefone ? `55${coordenador.telefone.replace(/\D/g, '')}@c.us` : null;
+    console.log(`Coordenador: ${JSON.stringify(coordenador)}`);
+    console.log(`Tentando enviar mensagem para: ${coordenador.coordenador}, Telefone: ${telefone}`);
+
+    if (!telefone) {
+        console.error(`Telefone não encontrado ou inválido para o coordenador: ${coordenador.coordenador}`);
+        return;
+    }
+
     const mensagem = `Olá, ${coordenador.coordenador}. Identificamos pendências no preenchimento do Diário de Classe. Confira o relatório anexado.`;
 
     gerarPDF(coordenador.coordenador, dados, (nomeArquivoPDF) => {
@@ -193,8 +243,14 @@ const enviarParaCoordenador = (coordenador, dados) => {
     });
 };
 
-app.post('/api/enviar-mensagem', async (req, res) => {
+// Rota para enviar mensagens
+app.post('/api/enviar-mensagem', verificarAutenticacao, async (req, res) => {
     const { municipio, coordenador, escola, dados } = req.body;
+
+    console.log('Dados recebidos no backend:');
+    console.log(`Município: ${municipio}`);
+    console.log(`Coordenador: ${coordenador}`);
+    console.log(`Escola: ${escola}`);
 
     if (!clientReady) {
         return res.status(500).json({ error: 'WhatsApp não está conectado' });
@@ -203,7 +259,7 @@ app.post('/api/enviar-mensagem', async (req, res) => {
     const dadosFiltrados = dados.filter(dado =>
         (!coordenador || dado.coordenador === coordenador) &&
         (!escola || dado.escola === escola) &&
-        dado.telefone // Filtra apenas coordenadores com telefone definido
+        dado.telefone
     );
 
     if (!coordenador) {
@@ -219,6 +275,7 @@ app.post('/api/enviar-mensagem', async (req, res) => {
     res.json({ success: true, message: 'Mensagens enviadas com sucesso!' });
 });
 
+// Configuração do servidor
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);

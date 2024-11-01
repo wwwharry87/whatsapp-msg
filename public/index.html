@@ -89,7 +89,7 @@
             width: 100%;
         }
 
-        .action-bar label {
+        .dropdown-group label {
             font-weight: 500;
             color: #555;
             margin-bottom: 5px;
@@ -325,6 +325,7 @@
 
     <script>
         let clientReady = false;
+        let dadosCompletos = [];
 
         window.onload = function () {
             verificarStatusWhatsapp();
@@ -403,7 +404,7 @@
             fetch(`/api/dados?municipio=${municipio}`)
                 .then(response => response.json())
                 .then(data => {
-                    const dadosCompletos = data.data;
+                    dadosCompletos = data.data;
                     atualizarSelectEscola(dadosCompletos);
                     atualizarSelectCoordenador(dadosCompletos);
                     listarDados(dadosCompletos);
@@ -459,19 +460,21 @@
 
         function enviarDadosParaBackend() {
             const municipio = document.getElementById('municipio').value;
-            const coordenador = document.getElementById('coordenador').value;
             const escola = document.getElementById('escola').value;
+            const coordenador = document.getElementById('coordenador').value;
 
             const body = {
-                municipio,
-                coordenador,
-                escola,
-                dados: [] // Adicione a lógica para enviar dados
+                municipio: municipio || '',
+                coordenador: coordenador || '',
+                escola: escola || '',
+                dados: dadosCompletos
             };
 
             fetch('/api/enviar-mensagem', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify(body)
             })
             .then(response => response.json())
