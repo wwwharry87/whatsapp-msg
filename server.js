@@ -27,13 +27,13 @@ let qrCodeData = null;
 let clientReady = false;
 
 fs.createReadStream('municipios.txt')
-  .pipe(csv({ separator: ';', headers: ['municipio', 'url'] }))
-  .on('data', (row) => {
-    municipiosData.push(row);
-  })
-  .on('end', () => {
-    console.log('Arquivo de municípios carregado com sucesso.');
-  });
+    .pipe(csv({ separator: ';', headers: ['municipio', 'url'] }))
+    .on('data', (row) => {
+        municipiosData.push(row);
+    })
+    .on('end', () => {
+        console.log('Arquivo de municípios carregado com sucesso.');
+    });
 
 let client = new Client({
     authStrategy: new LocalAuth({ clientId: 'whatsapp-client' }),
@@ -46,7 +46,7 @@ function iniciarClienteWhatsApp() {
             clientReady = false;
             console.log('QR code gerado e pronto para ser escaneado.');
         } catch (err) {
-            console.error('Erro ao gerar QR code:', err);
+            console.error('Erro ao gerar código QR:', err);
         }
     });
 
@@ -105,7 +105,7 @@ const carregarDadosPorMunicipio = async (url) => {
     const data = [];
     const csvString = response.data.toString('utf-8');
     csvString.split('\n').forEach((line, index) => {
-        if (index === 0) return;  // Ignorar cabeçalho do CSV
+        if (index === 0) return; // Ignorar cabeçalho do CSV
         const columns = line.split(',');
         data.push({
             escola: columns[0],
@@ -200,7 +200,6 @@ app.post('/api/enviar-mensagem', async (req, res) => {
         return res.status(500).json({ error: 'WhatsApp não está conectado' });
     }
 
-    // Filtra dados para incluir apenas coordenadores com telefone válido
     const dadosFiltrados = dados.filter(dado =>
         (!coordenador || dado.coordenador === coordenador) &&
         (!escola || dado.escola === escola) &&
@@ -219,7 +218,6 @@ app.post('/api/enviar-mensagem', async (req, res) => {
 
     res.json({ success: true, message: 'Mensagens enviadas com sucesso!' });
 });
-
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

@@ -1,3 +1,2 @@
-2024/10/31-18:09:32.405 8403 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Service Worker/Database/MANIFEST-000001
-2024/10/31-18:09:32.405 8403 Recovering log #3
-2024/10/31-18:09:32.408 8403 Reusing old log /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Service Worker/Database/000003.log 
+2024/11/01-13:16:21.391 13207 Creating DB /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Service Worker/Database since it was missing.
+2024/11/01-13:16:21.402 13207 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Service Worker/Database/MANIFEST-000001

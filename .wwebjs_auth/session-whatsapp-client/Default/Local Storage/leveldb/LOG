@@ -1,3 +1,2 @@
-2024/10/31-18:09:32.341 f603 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/MANIFEST-000001
-2024/10/31-18:09:32.341 f603 Recovering log #54
-2024/10/31-18:09:32.342 f603 Reusing old log /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/000054.log 
+2024/11/01-13:16:19.864 8803 Creating DB /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb since it was missing.
+2024/11/01-13:16:19.877 8803 Reusing MANIFEST /Users/wesleymelo/whatsapp-msg/.wwebjs_auth/session-whatsapp-client/Default/Local Storage/leveldb/MANIFEST-000001

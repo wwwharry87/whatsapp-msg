@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoordInforma</title>
-    <link rel="icon" href="favicon.ico" type="image/x-icon"> <!-- Referência ao favicon .ico -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
 
@@ -22,17 +22,18 @@
             background-color: #ffffff;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
         }
 
         .header {
             display: flex;
             align-items: center;
-            gap: 15px; /* Espaço entre a logo e o título */
+            gap: 15px;
             margin-bottom: 5px;
         }
 
         .header img {
-            height: 60px; /* Aumentei o tamanho da logo */
+            height: 60px;
             width: auto;
         }
 
@@ -58,19 +59,27 @@
             margin: 10px 0 30px 0;
         }
 
-        .action-bar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
         .status-indicator {
             font-size: 1.2em;
-            color: #28a745;
-            margin-right: 10px;
-            vertical-align: middle;
+            color: #ff0000;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .connect-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: none;
+        }
+
+        .connect-btn:hover {
+            background-color: #0056b3;
         }
 
         .dropdown-group {
@@ -161,7 +170,6 @@
             background-color: #f9f9f9;
         }
 
-        /* Caixa de notificação estilizada */
         .notification {
             position: fixed;
             bottom: 20px;
@@ -187,75 +195,59 @@
             pointer-events: all;
         }
 
-        /* Ajuste para telas menores */
-        @media (max-width: 1180px) {
-            .dropdown-group {
-                width: 100%;
-            }
-
-            select, button {
-                width: 100%;
-                font-size: 14px;
-            }
-
-            .container {
-                padding: 15px;
-            }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
         }
 
-        /* Ajuste específico para iPad e telas menores */
-        @media (max-width: 820px) and (max-height: 1180px) {
-            h1 {
-                font-size: 1.8em;
-            }
-
-            h2 {
-                font-size: 0.9em;
-            }
-
-            .container {
-                padding: 15px;
-                max-width: 90%;
-            }
-
-            th, td {
-                font-size: 12px;
-                padding: 8px;
-            }
-
-            table {
-                width: 100%;
-                font-size: 12px;
-            }
-
-            .action-bar {
-                gap: 10px;
-            }
+        .modal.show {
+            display: block;
         }
 
-        /* Ajuste para celulares */
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.5em;
-            }
+        .modal-header {
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
 
-            h2 {
-                font-size: 0.8em;
-            }
+        .modal-content {
+            text-align: center;
+        }
 
-            .container {
-                padding: 15px;
-            }
+        .modal-close {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
 
-            th, td {
-                font-size: 8px;
-                padding: 6px;
-            }
+        .modal-close:hover {
+            background-color: #d32f2f;
+        }
 
-            table {
-                width: 100%;
-                font-size: 8px;
-            }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .overlay.show {
+            display: block;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -263,41 +255,40 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="logo.png" alt="Logo"> <!-- Certifique-se de que sua logo não tenha fundo e aumentei o tamanho -->
+            <img src="logo.png" alt="Logo">
             <h1>CoordInforma</h1>
         </div>
         <h2>- Mantendo os Coordenadores Sempre Atualizados</h2>
         <div class="divider"></div>
 
-        <div class="action-bar">
-            <span id="whatsapp-status" class="status-indicator disconnected">
-                <i class="fas fa-circle"></i>
-            </span>
+        <span id="whatsapp-status" class="status-indicator">
+            <i class="fas fa-circle"></i>
+        </span>
+        <button id="connect-btn" class="connect-btn" onclick="abrirModal()">Conectar WhatsApp</button>
 
-            <div class="dropdown-group">
-                <label for="municipio">Município:</label>
-                <select id="municipio" onchange="trocarMunicipio()">
-                    <option value="">Selecione um município</option>
-                </select>
-            </div>
+        <div class="dropdown-group">
+            <label for="municipio">Município:</label>
+            <select id="municipio" onchange="trocarMunicipio()" disabled>
+                <option value="">Selecione um município</option>
+            </select>
+        </div>
 
-            <div class="dropdown-group">
-                <label for="escola">Escola:</label>
-                <select id="escola" onchange="filtrarPorEscola()">
-                    <option value="">Todas as Escolas</option>
-                </select>
-            </div>
+        <div class="dropdown-group">
+            <label for="escola">Escola:</label>
+            <select id="escola" onchange="filtrarPorEscola()" disabled>
+                <option value="">Todas as Escolas</option>
+            </select>
+        </div>
 
-            <div class="dropdown-group">
-                <label for="coordenador">Coordenador:</label>
-                <select id="coordenador" onchange="filtrarPorCoordenador()">
-                    <option value="">Todos os Coordenadores</option>
-                </select>
-            </div>
+        <div class="dropdown-group">
+            <label for="coordenador">Coordenador:</label>
+            <select id="coordenador" onchange="filtrarPorCoordenador()" disabled>
+                <option value="">Todos os Coordenadores</option>
+            </select>
         </div>
 
         <div class="send-bar">
-            <button id="enviar-btn" onclick="verificarWhatsapp()">
+            <button id="enviar-btn" onclick="enviarDadosParaBackend()" disabled>
                 <i class="fab fa-whatsapp whatsapp-icon"></i> Enviar
             </button>
         </div>
@@ -313,64 +304,98 @@
                         <th>Falta</th>
                     </tr>
                 </thead>
-                <tbody id="dados-list">
-                    <!-- Dados carregados dinamicamente -->
-                </tbody>
+                <tbody id="dados-list"></tbody>
             </table>
         </div>
 
-        <!-- Caixa de mensagem estilizada para confirmação de envio -->
         <div id="notification" class="notification">
             <span class="emoji">😊</span> Mensagem e PDF enviados com sucesso para todos os coordenadores!
         </div>
+
+        <div id="modal" class="modal">
+            <div class="modal-header">Conectar WhatsApp</div>
+            <div class="modal-content">
+                <p>Escaneie o QR Code para conectar ao WhatsApp.</p>
+                <div id="qr-code"></div>
+                <button class="modal-close" onclick="fecharModal()">Fechar</button>
+            </div>
+        </div>
+        <div id="overlay" class="overlay"></div>
     </div>
 
     <script>
-        let escolaSelecionada = "";
-        let coordenadorSelecionado = "";
-        let dadosCompletos = [];
+        let clientReady = false;
 
         window.onload = function () {
-            carregarMunicipios();
             verificarStatusWhatsapp();
+            carregarMunicipios();
         };
-
-        function verificarWhatsapp() {
-            fetch('/api/check-whatsapp')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.connected) {
-                        enviarDadosParaBackend();
-                    } else if (data.qr) {
-                        abrirModalComQr(data.qr);
-                    } else {
-                        alert('Erro ao verificar WhatsApp. Tente novamente.');
-                    }
-                })
-                .catch(error => console.error('Erro ao verificar WhatsApp:', error));
-        }
 
         function carregarMunicipios() {
             fetch('/api/municipios')
                 .then(response => response.json())
                 .then(municipios => {
-                    const select = document.getElementById('municipio');
+                    const selectMunicipio = document.getElementById('municipio');
                     municipios.forEach(municipio => {
                         const option = document.createElement('option');
                         option.value = municipio;
                         option.textContent = municipio;
-                        select.appendChild(option);
+                        selectMunicipio.appendChild(option);
                     });
                 })
                 .catch(error => console.error('Erro ao carregar municípios:', error));
         }
 
+        function verificarStatusWhatsapp() {
+            fetch('/api/check-whatsapp')
+                .then(response => response.json())
+                .then(data => {
+                    clientReady = data.connected;
+                    const statusIndicator = document.getElementById('whatsapp-status');
+                    const connectBtn = document.getElementById('connect-btn');
+                    const selects = document.querySelectorAll('select');
+                    const sendBtn = document.getElementById('enviar-btn');
+
+                    statusIndicator.style.color = clientReady ? '#28a745' : '#ff0000';
+                    connectBtn.classList.toggle('hidden', clientReady);
+
+                    if (clientReady) {
+                        selects.forEach(select => select.removeAttribute('disabled'));
+                        sendBtn.removeAttribute('disabled');
+                    } else {
+                        selects.forEach(select => select.setAttribute('disabled', true));
+                        sendBtn.setAttribute('disabled', true);
+                        abrirModal();
+                    }
+                })
+                .catch(error => console.error('Erro ao verificar WhatsApp:', error));
+        }
+
+        function abrirModal() {
+            document.getElementById('modal').classList.add('show');
+            document.getElementById('overlay').classList.add('show');
+            fetch('/api/check-whatsapp')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.connected && data.qr) {
+                        document.getElementById('qr-code').innerHTML = `<img src="${data.qr}" alt="QR Code">`;
+                    }
+                })
+                .catch(error => console.error('Erro ao carregar QR Code:', error));
+        }
+
+        function fecharModal() {
+            document.getElementById('modal').classList.remove('show');
+            document.getElementById('overlay').classList.remove('show');
+            verificarStatusWhatsapp();
+        }
+
         function trocarMunicipio() {
             const municipioSelecionado = document.getElementById('municipio').value;
             if (municipioSelecionado) {
-                carregarDados(municipioSelecionado); // Carrega novos dados do município
+                carregarDados(municipioSelecionado);
             } else {
-                limparDados(); // Limpa os dados se o município não estiver selecionado
+                limparDados();
             }
         }
 
@@ -378,47 +403,40 @@
             fetch(`/api/dados?municipio=${municipio}`)
                 .then(response => response.json())
                 .then(data => {
-                    dadosCompletos = data.data;
-
-                    // Atualiza as opções de escola e coordenador com base nos novos dados
-                    atualizarSelectEscola();
-                    atualizarSelectCoordenador();
+                    const dadosCompletos = data.data;
+                    atualizarSelectEscola(dadosCompletos);
+                    atualizarSelectCoordenador(dadosCompletos);
                     listarDados(dadosCompletos);
                 })
                 .catch(error => console.error('Erro ao carregar dados:', error));
         }
 
-        function atualizarSelectEscola() {
-            const escolasUnicas = [...new Set(dadosCompletos.map(item => item.escola))];
+        function atualizarSelectEscola(dados) {
+            const escolasUnicas = [...new Set(dados.map(item => item.escola))];
             const selectEscola = document.getElementById('escola');
             selectEscola.innerHTML = '<option value="">Todas as Escolas</option>';
             escolasUnicas.forEach(escola => {
-                if (escola) {
-                    const option = document.createElement('option');
-                    option.value = escola;
-                    option.textContent = escola;
-                    selectEscola.appendChild(option);
-                }
+                const option = document.createElement('option');
+                option.value = escola;
+                option.textContent = escola;
+                selectEscola.appendChild(option);
             });
         }
 
-        function atualizarSelectCoordenador() {
-            const coordenadoresUnicos = [...new Set(dadosCompletos.map(item => item.coordenador))];
+        function atualizarSelectCoordenador(dados) {
+            const coordenadoresUnicos = [...new Set(dados.map(item => item.coordenador))];
             const selectCoordenador = document.getElementById('coordenador');
             selectCoordenador.innerHTML = '<option value="">Todos os Coordenadores</option>';
             coordenadoresUnicos.forEach(coordenador => {
-                if (coordenador) {
-                    const option = document.createElement('option');
-                    option.value = coordenador;
-                    option.textContent = coordenador;
-                    selectCoordenador.appendChild(option);
-                }
+                const option = document.createElement('option');
+                option.value = coordenador;
+                option.textContent = coordenador;
+                selectCoordenador.appendChild(option);
             });
         }
 
         function limparDados() {
-            dadosCompletos = []; // Limpa o cache de dados
-            listarDados(dadosCompletos); // Atualiza a exibição com dados vazios
+            document.getElementById('dados-list').innerHTML = '';
             document.getElementById('escola').innerHTML = '<option value="">Todas as Escolas</option>';
             document.getElementById('coordenador').innerHTML = '<option value="">Todos os Coordenadores</option>';
         }
@@ -426,7 +444,6 @@
         function listarDados(dados) {
             const lista = document.getElementById('dados-list');
             lista.innerHTML = '';
-
             dados.forEach(item => {
                 const linha = document.createElement('tr');
                 linha.innerHTML = `
@@ -440,41 +457,27 @@
             });
         }
 
-        function filtrarPorEscola() {
-            escolaSelecionada = document.getElementById('escola').value;
-            const dadosFiltrados = escolaSelecionada
-                ? dadosCompletos.filter(item => item.escola === escolaSelecionada)
-                : dadosCompletos;
-            listarDados(dadosFiltrados);
-        }
-
-        function filtrarPorCoordenador() {
-            coordenadorSelecionado = document.getElementById('coordenador').value;
-            const dadosFiltrados = coordenadorSelecionado
-                ? dadosCompletos.filter(item => item.coordenador === coordenadorSelecionado && (!escolaSelecionada || item.escola === escolaSelecionada))
-                : dadosCompletos.filter(item => !escolaSelecionada || item.escola === escolaSelecionada);
-            listarDados(dadosFiltrados);
-        }
-
         function enviarDadosParaBackend() {
+            const municipio = document.getElementById('municipio').value;
+            const coordenador = document.getElementById('coordenador').value;
+            const escola = document.getElementById('escola').value;
+
             const body = {
-                municipio: document.getElementById('municipio').value,
-                coordenador: coordenadorSelecionado || '',
-                escola: escolaSelecionada || '',
-                dados: dadosCompletos
+                municipio,
+                coordenador,
+                escola,
+                dados: [] // Adicione a lógica para enviar dados
             };
 
             fetch('/api/enviar-mensagem', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    mostrarNotificacao(); // Exibe a notificação estilizada
+                    mostrarNotificacao();
                 } else {
                     alert('Erro ao enviar mensagem.');
                 }
@@ -484,9 +487,7 @@
 
         function mostrarNotificacao() {
             const notification = document.getElementById('notification');
-            notification.classList.add('show'); // Exibe a notificação
-
-            // Oculta a notificação após 5 segundos
+            notification.classList.add('show');
             setTimeout(() => {
                 notification.classList.remove('show');
             }, 5000);
