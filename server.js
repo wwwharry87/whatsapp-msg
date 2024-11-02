@@ -90,7 +90,8 @@ app.post('/api/solicitar-redefinicao', (req, res) => {
 
     // Enviar o link de redefinição de senha via WhatsApp
     const telefone = `55${usuario.telefone.replace(/\D/g, '')}@c.us`;
-    const mensagem = `Olá, ${username}. Clique no link para redefinir sua senha: https://bwsolucoesinteligentes.com/redefinir-senha.html?token=${token}`;
+    const mensagem = `Olá, ${username}. Clique no link para redefinir sua senha: https://bwsolucoesinteligentes.com/nova-senha.html?token=${token}`;
+
 
     client.sendMessage(telefone, mensagem)
         .then(() => res.json({ success: true }))
