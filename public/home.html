@@ -231,10 +231,33 @@
             cursor: pointer;
         }
 
+        td {
+    font-weight: normal; /* Remove o negrito do conteúdo das células da tabela */
+}
+
         .modal-close:hover {
             background-color: #d32f2f;
         }
 
+        @media (max-width: 600px) {
+    h1 {
+        font-size: 1.5em; /* Diminui o tamanho do título "CoordInforma" */
+    }
+
+    h2 {
+        font-size: 0.8em; /* Diminui o tamanho do texto do h2 */
+    }
+}
+        @media (max-width: 600px) {
+    table {
+        font-size: 9px; /* Ou 8px, dependendo da sua preferência */
+        width: 100%;
+    }
+
+    th, td {
+        padding: 5px; /* Reduz o padding para ocupar menos espaço */
+    }
+}
         .overlay {
             display: none;
             position: fixed;

@@ -108,8 +108,8 @@ iniciarClienteWhatsApp();
 // Lista de usuários com senhas hash
 const usuarios = [
     { username: 'admin', password: bcrypt.hashSync('admin8718', 10) },
-    { username: 'user1', password: bcrypt.hashSync('senha123', 10) },
-    { username: 'user2', password: bcrypt.hashSync('senha456', 10) }
+    { username: 'brenda', password: bcrypt.hashSync('brenda1234', 10) },
+    { username: 'evandro', password: bcrypt.hashSync('evandro1234', 10) }
 ];
 
 // Rota para autenticar o login
