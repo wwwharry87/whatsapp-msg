@@ -7,13 +7,11 @@
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-
         body {
             font-family: 'Poppins', sans-serif;
             display: flex;
@@ -22,7 +20,6 @@
             height: 100vh;
             background-color: #f4f8fb;
         }
-
         .login-container {
             background-color: #ffffff;
             padding: 40px;
@@ -32,33 +29,27 @@
             max-width: 400px;
             text-align: center;
         }
-
         .login-header {
             margin-bottom: 30px;
         }
-
         .logo {
             width: 150px;
             margin-bottom: 20px;
         }
-
         .login-header h1 {
             font-size: 1.8em;
             color: #28a745;
         }
-
         .input-group {
             margin-bottom: 20px;
             text-align: left;
         }
-
         .input-group label {
             display: block;
             font-weight: 500;
             color: #555;
             margin-bottom: 5px;
         }
-
         .input-group input {
             width: 100%;
             padding: 10px;
@@ -68,13 +59,11 @@
             background-color: #f8f8f8;
             color: #333;
         }
-
         .input-group input:focus {
             border-color: #28a745;
             outline: none;
             background-color: #ffffff;
         }
-
         .login-btn {
             background-color: #28a745;
             color: white;
@@ -86,11 +75,17 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-
         .login-btn:hover {
             background-color: #218838;
         }
-
+        .forgot-password {
+            color: #007bff;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: underline;
+            margin-top: 10px;
+            display: inline-block;
+        }
         .error-message {
             color: #ff0000;
             font-size: 14px;
@@ -110,39 +105,64 @@
             <label for="username">Usuário</label>
             <input type="text" id="username" placeholder="Digite seu usuário">
         </div>
-        <div class="input-group">
+        <div class="input-group" id="password-group" style="display: none;">
             <label for="password">Senha</label>
             <input type="password" id="password" placeholder="Digite sua senha">
         </div>
-        <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+        <button class="login-btn" id="login-btn" onclick="fazerLogin()">Próximo</button>
         <div class="error-message" id="error-message">Usuário ou senha inválidos.</div>
+        <span class="forgot-password" onclick="abrirTelaRedefinicao()">Esqueceu a senha?</span>
     </div>
 
     <script>
-        function fazerLogin() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
+        let usuarioValido = false;
 
-            // Envia a solicitação de login para o backend
-            fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Autenticação bem-sucedida, redireciona para home.html
-                    window.location.href = "/home.html";
-                } else {
-                    // Exibe mensagem de erro
-                    errorMessage.style.display = 'block';
-                }
-            })
-            .catch(error => console.error('Erro ao fazer login:', error));
+        function fazerLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorMessage = document.getElementById('error-message');
+            const passwordGroup = document.getElementById('password-group');
+            const loginBtn = document.getElementById('login-btn');
+
+            if (!usuarioValido) {
+                // Primeira etapa: verificar o usuário
+                fetch('/api/verificar-usuario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.usuarioExistente) {
+                        usuarioValido = true;
+                        passwordGroup.style.display = 'block';
+                        loginBtn.textContent = 'Entrar';
+                    } else {
+                        errorMessage.style.display = 'block';
+                    }
+                })
+                .catch(error => console.error('Erro ao verificar usuário:', error));
+            } else {
+                // Segunda etapa: verificar a senha
+                fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = "/home.html";
+                    } else {
+                        errorMessage.style.display = 'block';
+                    }
+                })
+                .catch(error => console.error('Erro ao fazer login:', error));
+            }
+        }
+
+        function abrirTelaRedefinicao() {
+            window.location.href = "/redefinir.html";
         }
     </script>
 </body>

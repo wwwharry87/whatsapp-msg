@@ -9,6 +9,7 @@ const pdfMake = require('pdfmake/build/pdfmake');
 const pdfFonts = require('pdfmake/build/vfs_fonts');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto'); // Para gerar tokens seguros
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
@@ -16,18 +17,117 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Configuração de sessão para expirar após 1 minuto de inatividade
 app.use(session({
     secret: 'secret-key',
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 60000 } // Sessão expira em 1 minuto (60.000 ms)
+    cookie: { maxAge: 60000 }
 }));
 
-// Middleware para servir arquivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware para verificar se a sessão está autenticada
+let usuarios = [];
+
+// Carregar dados dos usuários a partir do arquivo user.txt
+function carregarUsuarios() {
+    fs.readFile('user.txt', 'utf-8', (err, data) => {
+        if (err) {
+            console.error('Erro ao carregar o arquivo de usuários:', err);
+            return;
+        }
+        usuarios = data.split('\n').map(line => {
+            const [username, password, telefone] = line.split(',');
+            return {
+                username: username ? username.trim() : '',
+                password: password ? password.trim() : '',
+                telefone: telefone ? telefone.trim() : ''
+            };
+        }).filter(user => user.username && user.password && user.telefone);
+        console.log('Usuários carregados com sucesso:', usuarios);
+    });
+}
+carregarUsuarios();
+
+app.post('/api/verificar-usuario', (req, res) => {
+    const { username } = req.body;
+    const usuarioExistente = usuarios.some(user => user.username === username);
+    res.json({ usuarioExistente });
+});
+
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    console.log('Usuário digitado:', username);
+    console.log('Senha digitada:', password);
+
+    const usuarioValido = usuarios.find(user => user.username === username);
+    if (usuarioValido) {
+        const senhaCorreta = bcrypt.compareSync(password, usuarioValido.password);
+        if (senhaCorreta) {
+            req.session.authenticated = true;
+            res.json({ success: true });
+        } else {
+            res.json({ success: false });
+        }
+    } else {
+        res.json({ success: false });
+    }
+});
+
+// Funcionalidade de redefinição de senha
+const redefinicaoTokens = {}; // Armazena tokens temporários para redefinição de senha
+
+// Exemplo de ajuste na rota de redefinição de senha para garantir resposta JSON
+app.post('/api/solicitar-redefinicao', (req, res) => {
+    const { username } = req.body;
+    const usuario = usuarios.find(user => user.username === username);
+
+    if (!usuario) {
+        return res.status(404).json({ error: 'Usuário não encontrado.' }); // Retorna JSON mesmo em caso de erro
+    }
+
+    const token = crypto.randomBytes(20).toString('hex');
+    redefinicaoTokens[token] = username;
+
+    // Enviar o link de redefinição de senha via WhatsApp
+    const telefone = `55${usuario.telefone.replace(/\D/g, '')}@c.us`;
+    const mensagem = `Olá, ${username}. Clique no link para redefinir sua senha: https://bwsolucoesinteligentes.com/redefinir-senha?token=${token}`;
+
+    client.sendMessage(telefone, mensagem)
+        .then(() => res.json({ success: true }))
+        .catch(err => {
+            console.error('Erro ao enviar mensagem de redefinição:', err);
+            res.status(500).json({ error: 'Erro ao enviar mensagem de redefinição.' }); // Retorna JSON mesmo em caso de erro
+        });
+});
+
+
+app.post('/api/redefinir-senha', (req, res) => {
+    const { token, novaSenha } = req.body;
+    const username = redefinicaoTokens[token];
+
+    if (!username) {
+        return res.status(400).json({ error: 'Token inválido ou expirado.' });
+    }
+
+    const usuario = usuarios.find(user => user.username === username);
+    if (!usuario) {
+        return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    usuario.password = bcrypt.hashSync(novaSenha, 10);
+    delete redefinicaoTokens[token];
+
+    // Atualizar o arquivo user.txt
+    fs.writeFile('user.txt', usuarios.map(user => `${user.username},${user.password},${user.telefone}`).join('\n'), (err) => {
+        if (err) {
+            console.error('Erro ao atualizar arquivo de usuários:', err);
+            return res.status(500).json({ error: 'Erro ao atualizar senha.' });
+        }
+        res.json({ success: true });
+    });
+});
+
+// Middleware para proteger as rotas após o login
 app.use((req, res, next) => {
     if (!req.session.authenticated && !req.path.startsWith('/index.html') && !req.path.startsWith('/logo.png') && !req.path.startsWith('/favicon.ico') && req.path !== '/login') {
         return res.redirect('/index.html');
@@ -35,24 +135,21 @@ app.use((req, res, next) => {
     next();
 });
 
-// Rota principal para redirecionar automaticamente para a página de login
 app.get('/', (req, res) => {
     if (req.session.authenticated) {
-        return res.redirect('/home.html'); // Se autenticado, redireciona para home.html
+        return res.redirect('/home.html');
     }
-    res.sendFile(path.join(__dirname, 'public', 'index.html')); // Carrega a página de login
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Rota para verificar se a sessão ainda está ativa
 app.get('/api/check-session', (req, res) => {
     res.json({ authenticated: req.session.authenticated || false });
 });
 
-// Rota para encerrar a sessão (logout)
 app.get('/api/logout', (req, res) => {
     req.session.destroy(() => {
-        res.clearCookie('connect.sid'); // Limpa o cookie da sessão
-        res.sendStatus(200); // Envia uma resposta de sucesso
+        res.clearCookie('connect.sid');
+        res.sendStatus(200);
     });
 });
 
@@ -60,7 +157,6 @@ let municipiosData = [];
 let qrCodeData = null;
 let clientReady = false;
 
-// Carregar dados dos municípios
 fs.createReadStream('municipios.txt')
     .pipe(csv({ separator: ';', headers: ['municipio', 'url'] }))
     .on('data', (row) => {
@@ -70,7 +166,6 @@ fs.createReadStream('municipios.txt')
         console.log('Arquivo de municípios carregado com sucesso.');
     });
 
-// Configuração do cliente WhatsApp
 let client = new Client({
     authStrategy: new LocalAuth({ clientId: 'whatsapp-client' }),
 });
@@ -105,40 +200,18 @@ function iniciarClienteWhatsApp() {
 
 iniciarClienteWhatsApp();
 
-// Lista de usuários com senhas hash
-const usuarios = [
-    { username: 'admin', password: bcrypt.hashSync('admin8718', 10) },
-    { username: 'brenda', password: bcrypt.hashSync('brenda1234', 10) },
-    { username: 'evandro', password: bcrypt.hashSync('evandro1234', 10) }
-];
-
-// Rota para autenticar o login
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const usuarioValido = usuarios.find(user => user.username === username);
-    if (usuarioValido && bcrypt.compareSync(password, usuarioValido.password)) {
-        req.session.authenticated = true;
-        res.json({ success: true });
-    } else {
-        res.json({ success: false });
-    }
-});
-
-// Middleware para proteger as rotas após o login
 function verificarAutenticacao(req, res, next) {
     if (req.session.authenticated) {
         next();
     } else {
-        res.redirect('/index.html'); // Redireciona para a página de login
+        res.redirect('/index.html');
     }
 }
 
-// Protege a rota para home.html
 app.get('/home.html', verificarAutenticacao, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
-// Rota para verificar o status do WhatsApp
 app.get('/api/check-whatsapp', verificarAutenticacao, (req, res) => {
     if (clientReady) {
         res.json({ connected: true });
@@ -149,13 +222,11 @@ app.get('/api/check-whatsapp', verificarAutenticacao, (req, res) => {
     }
 });
 
-// Rota para obter os municípios
 app.get('/api/municipios', verificarAutenticacao, (req, res) => {
     const municipios = municipiosData.map(row => row.municipio);
     res.json([...new Set(municipios)]);
 });
 
-// Rota para obter os dados de um município específico
 app.get('/api/dados', verificarAutenticacao, async (req, res) => {
     const { municipio } = req.query;
     const municipioEncontrado = municipiosData.find(row => row.municipio === municipio);
@@ -171,7 +242,6 @@ app.get('/api/dados', verificarAutenticacao, async (req, res) => {
     }
 });
 
-// Função para carregar dados do município
 const carregarDadosPorMunicipio = async (url) => {
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     const data = [];
@@ -193,7 +263,6 @@ const carregarDadosPorMunicipio = async (url) => {
     return data;
 };
 
-// Função para gerar o PDF
 const gerarPDF = async (coordenador, dados, callback) => {
     const tableBody = [
         [{ text: 'Turma', bold: true }, { text: 'Professor', bold: true }, { text: 'Disciplina', bold: true }, { text: 'Data', bold: true }, { text: 'Falta', bold: true }]
@@ -237,7 +306,6 @@ const gerarPDF = async (coordenador, dados, callback) => {
     });
 };
 
-// Função para enviar mensagens para coordenadores
 const enviarParaCoordenador = (coordenador, dados) => {
     if (!coordenador) {
         console.error('Coordenador não definido.');
@@ -268,15 +336,8 @@ const enviarParaCoordenador = (coordenador, dados) => {
     });
 };
 
-// Rota para enviar mensagens
 app.post('/api/enviar-mensagem', verificarAutenticacao, async (req, res) => {
     const { municipio, coordenador, escola, dados } = req.body;
-
-    console.log('Dados recebidos no backend:');
-    console.log(`Município: ${municipio}`);
-    console.log(`Coordenador: ${coordenador}`);
-    console.log(`Escola: ${escola}`);
-
     if (!clientReady) {
         return res.status(500).json({ error: 'WhatsApp não está conectado' });
     }
@@ -300,7 +361,6 @@ app.post('/api/enviar-mensagem', verificarAutenticacao, async (req, res) => {
     res.json({ success: true, message: 'Mensagens enviadas com sucesso!' });
 });
 
-// Configuração do servidor
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);

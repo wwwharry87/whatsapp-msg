@@ -232,32 +232,34 @@
         }
 
         td {
-    font-weight: normal; /* Remove o negrito do conteúdo das células da tabela */
-}
+            font-weight: normal; /* Remove o negrito do conteúdo das células da tabela */
+        }
 
         .modal-close:hover {
             background-color: #d32f2f;
         }
 
         @media (max-width: 600px) {
-    h1 {
-        font-size: 1.5em; /* Diminui o tamanho do título "CoordInforma" */
-    }
+            h1 {
+                font-size: 1.5em; /* Diminui o tamanho do título "CoordInforma" */
+            }
 
-    h2 {
-        font-size: 0.8em; /* Diminui o tamanho do texto do h2 */
-    }
-}
+            h2 {
+                font-size: 0.8em; /* Diminui o tamanho do texto do h2 */
+            }
+        }
+
         @media (max-width: 600px) {
-    table {
-        font-size: 9px; /* Ou 8px, dependendo da sua preferência */
-        width: 100%;
-    }
+            table {
+                font-size: 9px; /* Ou 8px, dependendo da sua preferência */
+                width: 100%;
+            }
 
-    th, td {
-        padding: 5px; /* Reduz o padding para ocupar menos espaço */
-    }
-}
+            th, td {
+                padding: 5px; /* Reduz o padding para ocupar menos espaço */
+            }
+        }
+
         .overlay {
             display: none;
             position: fixed;
@@ -344,7 +346,6 @@
             </div>
         </div>
         <div id="overlay" class="overlay"></div>
-
     </div>
 
     <script>
@@ -360,13 +361,20 @@
             fetch('/api/municipios')
                 .then(response => response.json())
                 .then(municipios => {
+                    if (!Array.isArray(municipios) || municipios.length === 0) {
+                        throw new Error('Nenhum município encontrado ou dados inválidos');
+                    }
+
                     const selectMunicipio = document.getElementById('municipio');
+                    selectMunicipio.innerHTML = '<option value="">Selecione um município</option>';
                     municipios.forEach(municipio => {
                         const option = document.createElement('option');
                         option.value = municipio;
                         option.textContent = municipio;
                         selectMunicipio.appendChild(option);
                     });
+
+                    selectMunicipio.removeAttribute('disabled');
                 })
                 .catch(error => console.error('Erro ao carregar municípios:', error));
         }
@@ -428,10 +436,14 @@
             fetch(`/api/dados?municipio=${municipio}`)
                 .then(response => response.json())
                 .then(data => {
-                    dadosCompletos = data.data;
-                    atualizarSelectEscola(dadosCompletos);
-                    atualizarSelectCoordenador(dadosCompletos);
-                    listarDados(dadosCompletos);
+                    if (typeof data === 'object' && data.data) {
+                        dadosCompletos = data.data;
+                        atualizarSelectEscola(dadosCompletos);
+                        atualizarSelectCoordenador(dadosCompletos);
+                        listarDados(dadosCompletos);
+                    } else {
+                        console.error('Resposta inválida recebida do servidor:', data);
+                    }
                 })
                 .catch(error => console.error('Erro ao carregar dados:', error));
         }
@@ -446,6 +458,7 @@
                 option.textContent = escola;
                 selectEscola.appendChild(option);
             });
+            selectEscola.removeAttribute('disabled');
         }
 
         function atualizarSelectCoordenador(dados) {
@@ -458,6 +471,7 @@
                 option.textContent = coordenador;
                 selectCoordenador.appendChild(option);
             });
+            selectCoordenador.removeAttribute('disabled');
         }
 
         function limparDados() {
@@ -482,13 +496,23 @@
             });
         }
 
+        function filtrarPorEscola() {
+            const escolaSelecionada = document.getElementById('escola').value;
+            if (escolaSelecionada) {
+                const dadosFiltrados = dadosCompletos.filter(dado => dado.escola === escolaSelecionada);
+                listarDados(dadosFiltrados);
+            } else {
+                listarDados(dadosCompletos);
+            }
+        }
+
         function filtrarPorCoordenador() {
             const coordenadorSelecionado = document.getElementById('coordenador').value;
             if (coordenadorSelecionado) {
                 const dadosFiltrados = dadosCompletos.filter(dado => dado.coordenador === coordenadorSelecionado);
                 listarDados(dadosFiltrados);
             } else {
-                listarDados(dadosCompletos); // Exibe todos os dados se nenhum coordenador for selecionado
+                listarDados(dadosCompletos);
             }
         }
 

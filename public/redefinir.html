@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir Senha - CoordInforma</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f8fb;
+        }
+        .reset-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .reset-header {
+            margin-bottom: 30px;
+        }
+        .reset-header h1 {
+            font-size: 1.8em;
+            color: #28a745;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            background-color: #f8f8f8;
+            color: #333;
+        }
+        .input-group input:focus {
+            border-color: #28a745;
+            outline: none;
+            background-color: #ffffff;
+        }
+        .reset-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            width: 48%;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-block;
+            margin-right: 2%;
+        }
+        .reset-btn:hover {
+            background-color: #218838;
+        }
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            width: 48%;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-block;
+        }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
+        .error-message {
+            color: #ff0000;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="reset-container">
+        <div class="reset-header">
+            <h1>Redefinir Senha</h1>
+        </div>
+        <div class="input-group">
+            <label for="username">Usuário</label>
+            <input type="text" id="username" placeholder="Digite seu usuário">
+        </div>
+        <div class="input-group">
+            <label for="telefone">Telefone</label>
+            <input type="text" id="telefone" placeholder="Digite seu telefone">
+        </div>
+        <button class="reset-btn" onclick="enviarRedefinicao()">Redefinir</button>
+        <button class="back-btn" onclick="voltarParaLogin()">Voltar</button>
+        <div class="error-message" id="error-message">Usuário ou telefone não encontrados.</div>
+    </div>
+
+    <script>
+        // Chamada ao backend para solicitar redefinição de senha
+function enviarRedefinicao() {
+    const username = document.getElementById('username').value.trim();
+    fetch('/api/solicitar-redefinicao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erro na solicitação de redefinição.');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            alert('Link de redefinição enviado com sucesso!');
+        } else {
+            alert('Erro ao enviar link de redefinição.');
+        }
+    })
+    .catch(error => console.error('Erro ao enviar redefinição:', error));
+}
+
+
+        function voltarParaLogin() {
+            window.location.href = "/index.html";
+        }
+    </script>
+</body>
+</html>
