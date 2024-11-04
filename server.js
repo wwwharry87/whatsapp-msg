@@ -76,12 +76,13 @@ app.post('/login', (req, res) => {
 // Funcionalidade de redefinição de senha
 const redefinicaoTokens = {}; // Armazena tokens temporários para redefinição de senha
 
+// Exemplo de ajuste na rota de redefinição de senha para garantir resposta JSON
 app.post('/api/solicitar-redefinicao', (req, res) => {
     const { username } = req.body;
     const usuario = usuarios.find(user => user.username === username);
 
     if (!usuario) {
-        return res.status(404).json({ error: 'Usuário não encontrado.' });
+        return res.status(404).json({ error: 'Usuário não encontrado.' }); // Retorna JSON mesmo em caso de erro
     }
 
     const token = crypto.randomBytes(20).toString('hex');
@@ -91,13 +92,15 @@ app.post('/api/solicitar-redefinicao', (req, res) => {
     const telefone = `55${usuario.telefone.replace(/\D/g, '')}@c.us`;
     const mensagem = `Olá, ${username}. Clique no link para redefinir sua senha: https://bwsolucoesinteligentes.com/nova-senha.html?token=${token}`;
 
+
     client.sendMessage(telefone, mensagem)
         .then(() => res.json({ success: true }))
         .catch(err => {
             console.error('Erro ao enviar mensagem de redefinição:', err);
-            res.status(500).json({ error: 'Erro ao enviar mensagem de redefinição.' });
+            res.status(500).json({ error: 'Erro ao enviar mensagem de redefinição.' }); // Retorna JSON mesmo em caso de erro
         });
 });
+
 
 app.post('/api/redefinir-senha', (req, res) => {
     const { token, novaSenha } = req.body;
@@ -125,6 +128,7 @@ app.post('/api/redefinir-senha', (req, res) => {
     });
 });
 
+// Middleware para proteger as rotas após o login
 app.use((req, res, next) => {
     if (!req.session.authenticated && !req.path.startsWith('/index.html') && !req.path.startsWith('/logo.png') && !req.path.startsWith('/favicon.ico') && req.path !== '/login') {
         return res.redirect('/index.html');
@@ -219,30 +223,25 @@ app.get('/api/check-whatsapp', verificarAutenticacao, (req, res) => {
     }
 });
 
-app.get('/api/municipios', verificarAutenticacao, async (req, res) => {
-    try {
-        // Filtrar municípios que têm dados
-        const municipiosComDados = [];
-        
-        for (const municipio of municipiosData) {
-            const url = municipio.url;
-            try {
-                const dados = await carregarDadosPorMunicipio(url);
-                if (dados.length > 0) {
-                    municipiosComDados.push(municipio.municipio);
-                }
-            } catch (error) {
-                console.error(`Erro ao carregar dados para o município ${municipio.municipio}:`, error);
-            }
-        }
-
-        res.json([...new Set(municipiosComDados)]);
-    } catch (error) {
-        console.error('Erro ao filtrar municípios:', error);
-        res.status(500).json({ error: 'Erro ao filtrar municípios.' });
-    }
+app.get('/api/municipios', verificarAutenticacao, (req, res) => {
+    const municipios = municipiosData.map(row => row.municipio);
+    res.json([...new Set(municipios)]);
 });
 
+app.get('/api/dados', verificarAutenticacao, async (req, res) => {
+    const { municipio } = req.query;
+    const municipioEncontrado = municipiosData.find(row => row.municipio === municipio);
+
+    if (!municipioEncontrado) return res.status(404).json({ error: 'Município não encontrado' });
+
+    const url = municipioEncontrado.url;
+    try {
+        const dados = await carregarDadosPorMunicipio(url);
+        res.json({ data: dados });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao carregar os dados filtrados.' });
+    }
+});
 
 const carregarDadosPorMunicipio = async (url) => {
     const response = await axios.get(url, { responseType: 'arraybuffer' });
