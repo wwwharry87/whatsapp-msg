@@ -220,22 +220,29 @@ app.get('/api/check-whatsapp', verificarAutenticacao, (req, res) => {
 });
 
 app.get('/api/municipios', verificarAutenticacao, async (req, res) => {
-    const municipios = [];
-
-    for (const row of municipiosData) {
-        const url = row.url;
-        try {
-            const dados = await carregarDadosPorMunicipio(url);
-            if (dados.length > 0) {
-                municipios.push(row.municipio);
+    try {
+        // Filtrar municípios que têm dados
+        const municipiosComDados = [];
+        
+        for (const municipio of municipiosData) {
+            const url = municipio.url;
+            try {
+                const dados = await carregarDadosPorMunicipio(url);
+                if (dados.length > 0) {
+                    municipiosComDados.push(municipio.municipio);
+                }
+            } catch (error) {
+                console.error(`Erro ao carregar dados para o município ${municipio.municipio}:`, error);
             }
-        } catch (error) {
-            console.error(`Erro ao carregar dados para o município ${row.municipio}:`, error);
         }
-    }
 
-    res.json([...new Set(municipios)]);
+        res.json([...new Set(municipiosComDados)]);
+    } catch (error) {
+        console.error('Erro ao filtrar municípios:', error);
+        res.status(500).json({ error: 'Erro ao filtrar municípios.' });
+    }
 });
+
 
 const carregarDadosPorMunicipio = async (url) => {
     const response = await axios.get(url, { responseType: 'arraybuffer' });
