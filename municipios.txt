@@ -1,2 +1,3 @@
 Tucuruí-PA;https://sgbr-use1-s3-reposervice.s3.amazonaws.com/arquivos/upload/1130/geral/numbers.csv
 Jacundá-PA;https://sgbr-use1-s3-reposervice.s3.amazonaws.com/arquivos/upload/1180/geral/numbers.csv
+Tucumã-PA;https://sgbr-use1-s3-reposervice.s3.amazonaws.com/arquivos/upload/1106/geral/numbers.csv
